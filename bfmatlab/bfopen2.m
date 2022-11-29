@@ -1,4 +1,4 @@
-function [result] = bfopen(id, varargin)
+function [result] = bfopen2(id, varargin)
 % Open microscopy images using Bio-Formats.
 %
 % SYNOPSIS r = bfopen(id)
