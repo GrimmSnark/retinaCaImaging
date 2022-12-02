@@ -37,6 +37,8 @@ imStackLinear = reshape(imStackResize, [], size(imStackResize,3));
 %% process
 
 %% get the baseline traces
+framePeriod = metaData.framePeriod;
+
 parfor_progress(length(imStackLinear));
 parfor i = 1:length(imStackLinear)
 
