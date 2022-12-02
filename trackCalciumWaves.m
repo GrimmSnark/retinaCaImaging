@@ -23,7 +23,7 @@ end
 
 
 %% threshold
-tifThresh = imbinarize(tifGauSub, 0.02);
+tifThresh = imbinarize(tifGauSub, 0.01);
 tifThresh = im2uint8(tifThresh);
 
 
@@ -194,14 +194,18 @@ end
 %% colorize imagestack to check waves
 waveCols = distinguishable_colors(length(unique(waveTable.waveNumber)),{'w','k'});
 
-tifGauSubRescale = double(tifTreshFilled)/255;
-tifGauSubRGB = permute(repmat(tifGauSubRescale, 1,1,1,3), [1 ,2 ,4 ,3]);
+% reshape into RGB image stack
+tifGauSubRGB = permute(repmat(tifTreshFilled, 1,1,1,3), [1 ,2 ,4 ,3]);
 frames = unique(waveTable.Frame);
 
+% for frames with waves
 for fr = frames'
+
+    % get frame objects
     frameObjIn = waveTable.Frame == fr;
     currentFrame = waveTable(frameObjIn,:);
 
+    % for all objects in frame, colorize pixels
     for BB = 1:height(currentFrame)
         currentFrameX = currentFrame.SubarrayIdx{BB,1} ;
         currentFrameY = currentFrame.SubarrayIdx{BB,2} ;
@@ -222,7 +226,52 @@ for fr = frames'
 end
 
 [folderPath, name] = fileparts(filepathDF);
-options.color = 1;
-saveastiff(tifGauSubRGB, fullfile(folderPath, [name(1:end-5) '_waveCol.tif']), options);
+% options.color = 1;
+% saveastiff(tifGauSubRGB, fullfile(folderPath, [name(1:end-5) '_waveCol.tif']), options);
 
+% save RGB timeseries stack
+bfsave(tifGauSubRGB, fullfile(folderPath, [name(1:end-5) '_waveCol.tif']), 'dimensionOrder', 'XYCTZ' );
+
+%% create wave extent images
+
+% get image to color over
+SDImage = std(double(tifStack),[],3);
+SDImage = imadjust(rescale(SDImage));
+
+% color over each wave extent
+for w = 1:max(waveTable.waveNumber)
+
+    % get all objects for a single waves
+    subTabIndx = waveTable.waveNumber == w;
+    subTable = waveTable(subTabIndx,:);
+
+    % get all the pixels involved in wave
+    wavePixels = unique(cat(1,subTable.PixelIdxList{:}));
+    [wavePixX, wavePixY] = ind2sub(size(SDImage), wavePixels);
+
+    % get wave extent in pixels
+    waveArea(w) = length(wavePixels);
+
+    SDImageRGB = repmat(SDImage, 1, 1, 3);
+
+    % colorize each pixel
+    for pix = 1:length(wavePixX)
+    SDImageRGB(wavePixX(pix), wavePixY(pix) ,:) = squeeze(SDImageRGB( wavePixX(pix), wavePixY(pix),:))' .* waveCols(w,:);
+    end
+
+    % save the things
+    wavePicDir = fullfile(folderPath, [name(1:end-5) '_waveMaps']);
+
+    if ~exist(wavePicDir)
+        mkdir(wavePicDir);
+    end
+
+    imwrite(SDImageRGB, fullfile(wavePicDir, sprintf('%s_wave_%03d.tif', name(1:end-5), w)));
+end
+
+%% get average dF/F for each waves
+
+for w = 1:max(waveTable.waveNumber)
+
+end
 end

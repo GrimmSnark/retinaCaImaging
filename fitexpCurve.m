@@ -21,8 +21,9 @@ fittedExpCurve = fittedExpCurve* 0.97; % scale down to allow for postive trace
 
 yBaselined = ydata - fittedExpCurve;
 
-if min(yBaselined) < 0
-    yBaselined = yBaselined+ min(yBaselined) + 100;
+% add offset to avoid weird artefacts
+if min(yBaselined) < 1000
+    yBaselined = yBaselined+ abs(min(yBaselined)) + 1000;
 end
 
 %% expfun accepts curve parameters as inputs, and outputs sse,
