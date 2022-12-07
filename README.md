@@ -1,7 +1,7 @@
 # retinaCaImaging
 Code repo for analysing calcium imaging data collected from the FLAME system at Newcastle University
 
-Complete Guide to 2P Code Installation and Use
+Complete Guide to Code Installation and Use
 
 This toolbox is designed to allow the user to extract calcium imaging data from the FN1 FLAME system. This toolbox also contains a number of analysis scripts to extract stimulus driven Calcium transient activity from imaging recordings. 
 
