@@ -1,15 +1,27 @@
 function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, createDFPixelMovieFlag)
-% Function creates dF_F and metadata .mat file for a particular recording
-
-% filePath = 'C:\Data\mouse\calcium\FN1\09-11_Cal_520_ret3_time-laps3_100ms-freq.nd2';
-% filePath = 'C:\Data\mouse\calcium\FN1\09-11_Cal_520_ret3_time-laps1.nd2';
-% filePath = 'C:\Data\mouse\calcium\FN1\09-11_Cal_520_protease_ret5_time-laps4_plus-auto-fluo.nd2';
+% This function does basic preprocessing of t series imaging data including
+% meta data, image registration,  creates dF_F pixelwise movie and summary
+% SD images from .nd2 files from FLAME system
+%
+% Written by Michael Savage (michael.savage2@ncl.ac.uk)
+%
+% Input- filePath: image data .nd2 file from FLAME system
+%
+%        motionCorrFlag- Flag do motion correction on raw images
+%
+%        motionCorrectionType - DFT-based subpixel method
+%                               ('subMicronMethod')
+%                             - non-rigid NoRM Corr registration
+%                               ('nonRigid')
+%
+%        createDFPixelMovieFlag: flag for creating pixel wise DF_F stack
+%        and takes up time/space 0 = not saved, 1 = saved (DEFAULT)
 
 %% defaults
 calciumChan = 1;
 
 if nargin < 2 || isempty(motionCorrFlag)
-motionCorrFlag = 1;
+    motionCorrFlag = 1;
 end
 
 if nargin < 3 || isempty(motionCorrectionType)
@@ -18,10 +30,10 @@ end
 
 
 if nargin < 4 || isempty(createDFPixelMovieFlag)
-createDFPixelMovieFlag = 1;
+    createDFPixelMovieFlag = 1;
 end
 
-noOfImagesForAlignment = 50;
+noOfImagesForAlignment = 50; % number of brightest images used for motion correction template image
 
 %% read in nd2 file
 [imStack, metaData] = readFLAMEData(filePath);
@@ -30,15 +42,14 @@ noOfImagesForAlignment = 50;
 
 % split into channels
 imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
-
 imStackCal = squeeze(imStack(:,:,calciumChan,:));
 
 %% get save folder locations
 [folderParts, name ] = fileparts(filePath);
 
 %% motion correction
-if motionCorrFlag == 1
 
+if motionCorrFlag == 1
     % we want to use the brightness average
     % get image brightness in stack
     imageBrightness = squeeze(mean(imStackCal,[1,2]));
@@ -52,6 +63,9 @@ if motionCorrFlag == 1
     [imStackCal,xyShifts, options_nonrigid] = imageRegistration(imStackCal,motionCorrectionType, metaData.image.pixelSize, [], templateImageForReg);
     metaData.xyShifts = xyShifts;
     metaData.options_nonrigid = options_nonrigid;
+else
+    metaData.xyShifts = [];
+    metaData.options_nonrigid = [];
 end
 
 %% create DF/F image stack
@@ -63,6 +77,7 @@ if createDFPixelMovieFlag == 1
     imageDF_SD = std(double(dFStack),[],3);
     imageDF_SD = uint16(mat2gray(imageDF_SD) * 65535);
     saveastiff(imageDF_SD, fullfile(folderParts, [name '_dF_SD.tif']));
+    % bfsave(dFStack, fullfile(folderParts, [name(1:end-4) '_dF_F.tif']), 'dimensionOrder', 'XYTCZ');
 end
 %% save meta and SD image
 
@@ -71,6 +86,4 @@ imageSD = uint16(mat2gray(imageSD) * 65535);
 saveastiff(imageSD, fullfile(folderParts, [name '_SD.tif']));
 
 save(fullfile(folderParts, [name '_ExStruct.mat']), 'metaData');
-% bfsave(dFStack, fullfile(folderParts, [name(1:end-4) '_dF_F.tif']), 'dimensionOrder', 'XYTCZ');
-
 end

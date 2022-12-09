@@ -1,7 +1,27 @@
-function trackCalciumWaves(filepathDF)
+function trackCalciumWaves(filepathDF, thresholdVal, waveMinSize)
+% Tracks calcium waves and summarises frequency, speed , trajectory, wave
+% size etc. Requires dF/F pixelwise movie to have been created from
+% prepRetinaCalcium
+%
+% Written by Michael Savage (michael.savage2@ncl.ac.uk)
+%
+% Input- filepathDF: filepath for dF/F tif stack
+%
+%        thresholdVal: threshold value for blob detection (0 - 1 range)
+%                      OPTIONAL, DEFAULT = 0.01
+%
+%        waveMinSize: Calcium wave minimum size in pixel area
+%                     OPTIONAL, DEFAULT = 300
 
 %% defaults
-waveMinSize = 300;
+
+if nargin < 2 || isempty(thresholdVal)
+   thresholdVal = 0.01; 
+end
+
+if nargin < 3 || isempty(waveMinSize)
+    waveMinSize = 300;
+end
 
 %% load in dF movie
 tifStack = read_Tiffs(filepathDF);
@@ -23,9 +43,8 @@ end
 
 
 %% threshold
-tifThresh = imbinarize(tifGauSub, 0.01);
+tifThresh = imbinarize(tifGauSub, thresholdVal);
 tifThresh = im2uint8(tifThresh);
-
 
 %% fill holes to make wave detection easier
 for cc = 1:size(tifThresh,3)
@@ -60,12 +79,12 @@ for fr = 1:size(threshBinary,3)
     if sum(rows) > 0
         shapeProps = shapeProps(rows,:);
         for a = 1:height(shapeProps)
-            flow = estimateFlow(opticFlow, double(tifGauSub(:,:,fr)));
             shapeProps.Frame(a) = fr;
 
             % get the optic flow stuff
             pixelIndxs = shapeProps.PixelIdxList{a};
 
+            flow = estimateFlow(opticFlow, double(tifGauSub(:,:,fr)));
             % angles
             pixelAngles = rad2deg(flow.Orientation(pixelIndxs));
             % correct for negative angles

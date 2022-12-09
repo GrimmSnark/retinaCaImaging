@@ -44,7 +44,7 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
     xyShifts       = zeros(2,numberOfImages);
 
     %% GPU version
-    try
+    try % tries for GPU  version, which will only work if nvidia CUDA installed
         % create GPU arrays
         xyShiftsGPU       = gpuArray(zeros(2,numberOfImages));
         templateImgGPU = gpuArray(templateImg);
@@ -70,7 +70,7 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
 
         xyShifts = gather(xyShiftsGPU);
         %% CPU version
-    catch
+    catch % tries for CPU version if GPU CUDA not available
 
         disp('Starting to calculate frame shifts using CPU');
 
