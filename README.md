@@ -13,3 +13,10 @@ Software requirements:
 5.	Install Cell Magic Wand into FIJI (https://github.com/fitzlab/CellMagicWand/) OR (https://github.com/GrimmSnark/Cell_Magic_Wand)
 6.	You may need to increase your java heap size for FIJI and matlab to work with large images see (https://www.mathworks.com/matlabcentral/answers/92813-how-do-i-increase-the-heap-space-for-the-java-vm-in-matlab-6-0-r12-and-later-versions) NB use the java.opts method. 
 7.	You will need to modify the "intializeMIJ.m" to your local FIJI path.
+
+Basic usage of this pipeline:
+
+  * Run ``` prepRetinaCalcium ```
+  * Run ``` selectROIs ```
+  * Run ``` CaAnalysisFLAME ```
+  * All data will now be available in the _ExStruct.mat files
