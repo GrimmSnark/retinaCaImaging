@@ -52,6 +52,7 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
 
         disp('Starting to calculate frame shifts using GPU');
 
+        parfor_progress(numberOfImages);
         parfor ii = 1:numberOfImages
             % Get current image to register to the template image and pre-process the current frame.
 
@@ -74,6 +75,7 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
 
         disp('Starting to calculate frame shifts using CPU');
 
+        parfor_progress(numberOfImages)
         parfor ii = 1:numberOfImages
             % Get current image to register to the template image and pre-process the current frame.
 

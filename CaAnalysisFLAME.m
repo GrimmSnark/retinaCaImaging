@@ -1,4 +1,4 @@
-function CaAnalysisFLAME(exStructPath)
+function CaAnalysisFLAME(exStructPath, baselineSubType)
 % function which runs main analysis on calcium imaging data recorded on
 % FLAME FN1 system. This function requires user input defined cell
 % ROIs and calculates dF/F with baseline subtraction.
@@ -7,7 +7,22 @@ function CaAnalysisFLAME(exStructPath)
 %
 % Inputs-  exStructPath: filepath for exStruct.mat to process
 %
+%          baselineSubType - Switch case for calcium imaging baseline
+%                            subtraction type DEFAULT == 1
+%                            1: Expotential bleaching fit then rolling ball
+%                               baseline median percentile filter (use for
+%                               highly packed cells, ie retina)
+%                            2: Annulus neuropil subtraction and kernal 
+%                               density estimation for percentile filter (
+%                               use for loosely packed cells, ie culture or
+%                               in-vivo brain)
+%
 % Output- exStruct: saves structure containing all experiment info
+
+%% set defaults
+if nargin <2 || isempty(baselineSubType)
+    baselineSubType = 1;
+end
 
 %% open FIJI
 % initalize MIJI and get ROI manager open
@@ -17,7 +32,7 @@ RC = RM.getInstance();
 
 %% load metaStruct
 exStruct = load(exStructPath);
-exStruct = exStruct.metaData;
+exStruct = exStruct.exStruct;
 
 %% get filepath root
 filePathRoot = exStructPath(1:end-13);
@@ -59,7 +74,7 @@ exStruct.labeledNeuropilROI = createLabeledROIFromImageJPixels([exStruct.image.p
 exStruct.averageROIRadius = averageROIRadius;
 
 % does calcium trace extraction
-exStruct = CaExtractionFLAME(exStruct);
+exStruct = CaExtractionFLAME(exStruct, baselineSubType);
 
 
 % save data
