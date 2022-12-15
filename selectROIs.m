@@ -27,7 +27,12 @@ RC = RM.getInstance();
 
 %% load metaStruct
 exStruct = load(exStructPath);
-exStruct = exStruct.metaData;
+
+try
+    exStruct = exStruct.metaData;
+catch
+    exStruct = exStruct.exStruct;
+end
 
 %% get filepath root
 filePathRoot = exStructPath(1:end-13);

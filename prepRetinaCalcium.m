@@ -77,7 +77,6 @@ if createDFPixelMovieFlag == 1
     imageDF_SD = std(double(dFStack),[],3);
     imageDF_SD = uint16(mat2gray(imageDF_SD) * 65535);
     saveastiff(imageDF_SD, fullfile(folderParts, [name '_dF_SD.tif']));
-    % bfsave(dFStack, fullfile(folderParts, [name(1:end-4) '_dF_F.tif']), 'dimensionOrder', 'XYTCZ');
 end
 %% save meta and SD image
 

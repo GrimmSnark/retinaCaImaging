@@ -25,6 +25,22 @@ end
 
 %% load in dF movie
 tifStack = read_Tiffs(filepathDF);
+[folderPath, name] = fileparts(filepathDF);
+
+%% load in exStruct
+exStruct = load(fullfile(folderPath,[name(1:end-5) '_ExStruct.mat']));
+
+try
+    exStruct = exStruct.exStruct;
+catch
+    exStruct = exStruct.metaData;
+end
+
+%% get the downsampled res factor
+downSampleFactor = exStruct.image.pixelNum/size(tifStack,1);
+exStruct.downsampledRes = downSampleFactor*exStruct.image.pixelSize;
+
+      
 %% gaus blur
 tifGaus = imgaussfilt(tifStack,4);
 
@@ -41,34 +57,46 @@ for x = 1:size(tifGaus,3)
     tifGauSub(:,:,x) = tifGaus(:,:,x) - uint16(highpassFilteredTrace(x));
 end
 
+%% move to FIJI to use their threshold
+stackImp = MIJ.createImage('tifs', tifGauSub, 1);
 
-%% threshold
-tifThresh = imbinarize(tifGauSub, thresholdVal);
-tifThresh = im2uint8(tifThresh);
+% get frame brightness and the 3/4 brightest frame number
+frameBrightness = squeeze(mean(tifGauSub,[1 2]));
 
-%% fill holes to make wave detection easier
-for cc = 1:size(tifThresh,3)
-    tifTreshFilled(:,:,cc) = imfill(tifThresh(:,:,cc));
-end
+[frameVal, sortedIndx ]= sort(frameBrightness, 'ascend');
+frame2Set = round(length(frameBrightness) * 0.90);
+
+MIJ.setSlice(sortedIndx(frame2Set));
+MIJ.run('Threshold...','setAutoThreshold=Mean');
+MIJ.run("Convert to Mask", "method=Default background=Dark black");
+MIJ.run("Fill Holes", "stack");
+
+tifTreshFilled = im2uint8(rescale(MIJ.getImage('tifs')));
+
+% Clean up windows
+stackImp.changes = false;
+stackImp.close;
+MIJ.closeAllWindows;
 
 threshBinary = imbinarize(tifTreshFilled);
+disp('Thresholding done...');
 
-% %% optic flow
-% opticFlow =opticalFlowFarneback;
-% for ee = 1:size(tifGauSub,3) -1
-%     flow = estimateFlow(opticFlow, double(threshBinary(:,:,ee)));
-%     imshow(imadjust(tifGauSub(:,:,ee)));
-%     hold on
-%     plot(flow,'DecimationFactor',[5 5],'ScaleFactor',1);
-%     hold off
-%     pause
-%
+% %% threshold
+% tifThresh = imbinarize(tifGauSub, thresholdVal);
+% tifThresh = im2uint8(tifThresh);
+
+%% fill holes to make wave detection easier
+% for cc = 1:size(tifThresh,3)
+%     tifTreshFilled(:,:,cc) = imfill(tifThresh(:,:,cc));
 % end
-%
+
+disp('Holes filled');
+
+% threshBinary = imbinarize(tifTreshFilled);
 
 %%
 waveTable = [];
-opticFlow =opticalFlowHS;
+% opticFlow =opticalFlowHS;
 for fr = 1:size(threshBinary,3)
     shapeProps = regionprops("table", threshBinary(:,:,fr),"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList");
     shapeProps = sortrows(shapeProps,"Area", "descend");
@@ -80,24 +108,6 @@ for fr = 1:size(threshBinary,3)
         shapeProps = shapeProps(rows,:);
         for a = 1:height(shapeProps)
             shapeProps.Frame(a) = fr;
-
-            % get the optic flow stuff
-            pixelIndxs = shapeProps.PixelIdxList{a};
-
-            flow = estimateFlow(opticFlow, double(tifGauSub(:,:,fr)));
-            % angles
-            pixelAngles = rad2deg(flow.Orientation(pixelIndxs));
-            % correct for negative angles
-            pixelAngles(pixelAngles< 0) = pixelAngles(pixelAngles< 0) + 360;
-            % magnitudes
-            pixelMag = flow.Magnitude(pixelIndxs);
-
-            % vector average
-            meanVec = mean_vector_direction_magnitude([pixelAngles pixelMag]);
-
-            % add into shapeProps
-            shapeProps.meanOrientation(a) = meanVec.mean_angle_degrees;
-            shapeProps.meanMagnitude(a) = mean(pixelMag);
         end
         waveTable = [waveTable; shapeProps];
     end
@@ -149,15 +159,24 @@ for fr = frames'
             waveTable.Group(indexBB(possCombs(ss,2))) = possCombs(ss,3);
         end
 
+%         imshow(tifTreshFilled(:,:,fr))
+%         hold on
+%         for vv = 1:size(currentFrameBB,1)
+%             rectangle('Position', currentFrameBB(vv,:), 'EdgeColor','r');
+%         end
+%         title(['Frame No: ' num2str(fr)]);
+
     else
         waveTable.Group(frameObjIn) = 0;
     end
 end
 
+disp('Finished getting Ca objects')
+
 %% check for bounding box overlap across frames and start wave categorization
 
 % add overlap BB index coloumn
-waveTable.OverlapBBindx = zeros(height(waveTable),1);
+waveTable.OverlapBBindx = cell(height(waveTable),1);
 
 % for each frame
 for rr = 1:size(threshBinary,3)-1
@@ -177,18 +196,31 @@ for rr = 1:size(threshBinary,3)-1
 
 
             % for current frame objects
+            counter = 0;
             for currentBB = 1:height(currentFrame)
 
-                % for all next frame objects
+                % for all next frame objects mark the overlap with the
+                % previous frame object indexes
                 for nextFrameBB = 1:height(nextFrame)
                     overlap = bboxOverlapRatio(currentFrame.BoundingBox(currentBB,:), nextFrame.BoundingBox(nextFrameBB,:));
 
                     if overlap > 0
-                        nextFrame.OverlapBBindx(nextFrameBB) = frameIndNum(currentBB);
+                        counter = counter +1;
+                        nextFrame.OverlapBBindx{nextFrameBB}(counter) = frameIndNum(currentBB);
                     end
                 end
             end
 
+            % find and remove all zeros (small bug)
+            idxZeros = cellfun(@(c)(ismember(c,0)), nextFrame.OverlapBBindx, 'UniformOutput',false);
+
+            for u = 1:height(nextFrame)
+                if ~isempty(nextFrame.OverlapBBindx{u}) && sum(nextFrame.OverlapBBindx{u}) > 0
+                    nextFrame.OverlapBBindx{u} = nextFrame.OverlapBBindx{u}(~idxZeros{u});
+                end
+            end
+
+            % overwrite frame object info
             waveTable(frameObjInNext,:) = nextFrame;
         else
 
@@ -196,25 +228,40 @@ for rr = 1:size(threshBinary,3)-1
     end
 end
 
+disp('Checking for overlaps');
 %% classify objects into waves
 waveTable.waveNumber = zeros(height(waveTable),1);
 currentWave = 0;
 
 for ob = 1:height(waveTable)
 
-    if waveTable.OverlapBBindx(ob) == 0
+    if isempty(waveTable.OverlapBBindx{ob})
         currentWave = currentWave +1;
         waveTable.waveNumber(ob) = currentWave;
-    elseif waveTable.OverlapBBindx(ob) > 0
-        waveTable.waveNumber(ob) = waveTable.waveNumber(waveTable.OverlapBBindx(ob));
+    else
+        % get the minimum wave number
+        minWaveNo = min(waveTable.waveNumber(waveTable.OverlapBBindx{ob}));
+
+        % overwrite the grouped previous objects
+        waveTable.waveNumber(waveTable.OverlapBBindx{ob}) = minWaveNo;
+        waveTable.waveNumber(ob) = minWaveNo;
+
     end
 end
+
+% renumber the wave nums
+[~,~,newWaveNo] = unique(waveTable.waveNumber);
+waveTable.waveNumber = newWaveNo;
+
+
+%% add wave table to waves struct
+waves.waveTable = waveTable;
 
 %% colorize imagestack to check waves
 waveCols = distinguishable_colors(length(unique(waveTable.waveNumber)),{'w','k'});
 
 % reshape into RGB image stack
-tifGauSubRGB = permute(repmat(tifTreshFilled, 1,1,1,3), [1 ,2 ,4 ,3]);
+tifGauSubRGB = repmat(tifTreshFilled, 1,1,1,3);
 frames = unique(waveTable.Frame);
 
 % for frames with waves
@@ -232,24 +279,21 @@ for fr = frames'
         currentFramePix = currentFrame.PixelIdxList{BB};
 
         % initialise RGB
-        R = tifGauSubRGB(:,:,1,fr);
-        G = tifGauSubRGB(:,:,2,fr);
-        B = tifGauSubRGB(:,:,3,fr);
+        R = tifGauSubRGB(:,:,fr,1);
+        G = tifGauSubRGB(:,:,fr,2);
+        B = tifGauSubRGB(:,:,fr,3);
 
         R(currentFramePix) = R(currentFramePix) * waveCols(currentFrame.waveNumber(BB),1);
         G(currentFramePix) = G(currentFramePix) * waveCols(currentFrame.waveNumber(BB),2);
         B(currentFramePix) = B(currentFramePix) * waveCols(currentFrame.waveNumber(BB),3);
 
-        tifGauSubRGB(:,:,:,fr) = cat(3, R,G,B);
+        tifGauSubRGB(:,:,fr,:) = cat(3, R,G,B);
     end
 end
 
-[folderPath, name] = fileparts(filepathDF);
-% options.color = 1;
-% saveastiff(tifGauSubRGB, fullfile(folderPath, [name(1:end-5) '_waveCol.tif']), options);
-
 % save RGB timeseries stack
-bfsave(tifGauSubRGB, fullfile(folderPath, [name(1:end-5) '_waveCol.tif']), 'dimensionOrder', 'XYCTZ' );
+options.color = 1;
+saveastiff(permute(tifGauSubRGB, [1 2 4 3]), fullfile(folderPath, [name(1:end-5) '_waveCol2.tif']), options);
 
 %% create wave extent images
 
@@ -269,7 +313,9 @@ for w = 1:max(waveTable.waveNumber)
     [wavePixX, wavePixY] = ind2sub(size(SDImage), wavePixels);
 
     % get wave extent in pixels
-    waveArea(w) = length(wavePixels);
+    waves.waveArea(w) = length(wavePixels);
+    waves.waveAreaMicron(w) = length(wavePixels) * exStruct.downsampledRes;
+
 
     SDImageRGB = repmat(SDImage, 1, 1, 3);
 
@@ -288,9 +334,41 @@ for w = 1:max(waveTable.waveNumber)
     imwrite(SDImageRGB, fullfile(wavePicDir, sprintf('%s_wave_%03d.tif', name(1:end-5), w)));
 end
 
-%% get average dF/F for each waves
+%% get the wave metrics
 
 for w = 1:max(waveTable.waveNumber)
 
+    indxWave = waveTable.waveNumber ==w;
+    currentWave = waveTable(indxWave,:);
+
+    % wave frames
+    waveFrameFirst(w) = currentWave.Frame(1);
+    waveFrameLast(w) = currentWave.Frame(end);
+
+    % wave time on/off
+    waveTimeOn(w) = exStruct.frameInfo.frameTime(waveFrameFirst(w));
+    waveTimeOff(w) = exStruct.frameInfo.frameTime(waveFrameLast(w));
+
+    % average DF/F
+    DF_PixelList = [];
+    for cc = 1:height(currentWave)
+        currentDF_Frame = exStruct.dF(:,:,currentWave.Frame(cc));
+        currentPixels = currentDF_Frame(currentWave.PixelIdxList{cc});
+        DF_PixelList = [DF_PixelList; currentPixels ];
+    end
+
+    waveDFAverage(w) = mean(DF_PixelList);
 end
+
+%% add into waves
+waves.waveFrameFirst = waveFrameFirst;
+waves.waveFrameLast = waveFrameLast;
+waves.waveTimeOn = waveTimeOn;
+waves.waveTimeOff = waveTimeOff;
+waves.waveDFAverage = waveDFAverage;
+
+exStruct.waves = waves;
+
+save(fullfile(folderPath,[name(1:end-5) '_ExStruct.mat']), 'exStruct');
+
 end
