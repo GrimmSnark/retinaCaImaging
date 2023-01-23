@@ -1,4 +1,4 @@
-function trackCalciumWaves(filepathDF, thresholdVal, waveMinSize)
+function trackCalciumWaves(filepathDF, thresholdVal, waveMinSize, overBBLimit)
 % Tracks calcium waves and summarises frequency, speed , trajectory, wave
 % size etc. Requires dF/F pixelwise movie to have been created from
 % prepRetinaCalcium
@@ -13,15 +13,27 @@ function trackCalciumWaves(filepathDF, thresholdVal, waveMinSize)
 %        waveMinSize: Calcium wave minimum size in pixel area
 %                     OPTIONAL, DEFAULT = 300
 
+%% open FIJI
+% initalize MIJI 
+intializeMIJ;
+
 %% defaults
 
+% percent of brightest image range to use for thresholding
 if nargin < 2 || isempty(thresholdVal)
-   thresholdVal = 0.01; 
+   thresholdVal = 0.95; 
 end
 
+% wave object area minimum in pixel^2
 if nargin < 3 || isempty(waveMinSize)
     waveMinSize = 300;
 end
+
+if nargin < 4 || isempty(overBBLimit)
+    overBBLimit = 0.01 ; % 2 percent limit for bounding box overlap 
+end
+minFrameThreshold = 3;
+minAreaPercentChange = 0.25; % 25 percent
 
 %% load in dF movie
 tifStack = read_Tiffs(filepathDF);
@@ -64,7 +76,7 @@ stackImp = MIJ.createImage('tifs', tifGauSub, 1);
 frameBrightness = squeeze(mean(tifGauSub,[1 2]));
 
 [frameVal, sortedIndx ]= sort(frameBrightness, 'ascend');
-frame2Set = round(length(frameBrightness) * 0.90);
+frame2Set = round(length(frameBrightness) * thresholdVal);
 
 MIJ.setSlice(sortedIndx(frame2Set));
 MIJ.run('Threshold...','setAutoThreshold=Mean');
@@ -80,19 +92,6 @@ MIJ.closeAllWindows;
 
 threshBinary = imbinarize(tifTreshFilled);
 disp('Thresholding done...');
-
-% %% threshold
-% tifThresh = imbinarize(tifGauSub, thresholdVal);
-% tifThresh = im2uint8(tifThresh);
-
-%% fill holes to make wave detection easier
-% for cc = 1:size(tifThresh,3)
-%     tifTreshFilled(:,:,cc) = imfill(tifThresh(:,:,cc));
-% end
-
-disp('Holes filled');
-
-% threshBinary = imbinarize(tifTreshFilled);
 
 %%
 waveTable = [];
@@ -204,7 +203,7 @@ for rr = 1:size(threshBinary,3)-1
                 for nextFrameBB = 1:height(nextFrame)
                     overlap = bboxOverlapRatio(currentFrame.BoundingBox(currentBB,:), nextFrame.BoundingBox(nextFrameBB,:));
 
-                    if overlap > 0
+                    if overlap > overBBLimit
                         counter = counter +1;
                         nextFrame.OverlapBBindx{nextFrameBB}(counter) = frameIndNum(currentBB);
                     end
@@ -233,8 +232,10 @@ disp('Checking for overlaps');
 waveTable.waveNumber = zeros(height(waveTable),1);
 currentWave = 0;
 
+% forward pass
 for ob = 1:height(waveTable)
 
+    % if no matching previous objects
     if isempty(waveTable.OverlapBBindx{ob})
         currentWave = currentWave +1;
         waveTable.waveNumber(ob) = currentWave;
@@ -246,13 +247,60 @@ for ob = 1:height(waveTable)
         waveTable.waveNumber(waveTable.OverlapBBindx{ob}) = minWaveNo;
         waveTable.waveNumber(ob) = minWaveNo;
 
+        % get all previously matching objects
+        matchingObjects = cellfun(@(x) ismember(x,waveTable.OverlapBBindx{ob}), waveTable.OverlapBBindx , 'UniformOutput',false);
+        matchingObjects = cellfun(@(x) any(x),matchingObjects);
+
+        % get wave number which is non zero
+        waveNo = waveTable.waveNumber(matchingObjects);
+        waveNo = waveNo(waveNo>0);
+        minWaveNo = min(waveNo);
+        waveTable.waveNumber(matchingObjects) = minWaveNo;
     end
 end
 
-% renumber the wave nums
+% backward pass
+for v = height(waveTable):-1:2
+    objWaveNo = waveTable.waveNumber(v);
+    minWaveNo = min([objWaveNo waveTable.waveNumber(waveTable.OverlapBBindx{v})']);
+    waveTable.waveNumber(waveTable.OverlapBBindx{v}) = minWaveNo;
+end
+
+%% Clean waves, ie remove trash objects
+
+% remove small frame numbers
+waveNumbers = unique(waveTable.waveNumber);
+removeFlag = true(height(waveTable), 1);
+
+for ww = 1:length(waveNumbers)
+    numFrames = sum(waveTable.waveNumber == waveNumbers(ww));
+
+    if numFrames < minFrameThreshold
+        removeFlag(waveTable.waveNumber == waveNumbers(ww)) = 0;
+    end
+end
+
+waveTable = waveTable(removeFlag,:);
+
+% remove due to no size changes
+waveNumbers = unique(waveTable.waveNumber);
+removeFlag = true(height(waveTable), 1);
+
+for ww = 1:length(waveNumbers)
+    waveAreas = waveTable.Area(waveTable.waveNumber == waveNumbers(ww));
+    percent_change=abs(diff(waveAreas)./waveAreas(1:end-1,:));
+    maxPercentChange = max(percent_change);
+
+    if maxPercentChange < minAreaPercentChange
+        removeFlag(waveTable.waveNumber == waveNumbers(ww)) = 0;
+    end
+end
+
+waveTable = waveTable(removeFlag,:);
+
+%% renumber the wave nums
 [~,~,newWaveNo] = unique(waveTable.waveNumber);
 waveTable.waveNumber = newWaveNo;
-
 
 %% add wave table to waves struct
 waves.waveTable = waveTable;
@@ -293,7 +341,7 @@ end
 
 % save RGB timeseries stack
 options.color = 1;
-saveastiff(permute(tifGauSubRGB, [1 2 4 3]), fullfile(folderPath, [name(1:end-5) '_waveCol2.tif']), options);
+saveastiff(permute(tifGauSubRGB, [1 2 4 3]), fullfile(folderPath, [name(1:end-5) '_waveCol.tif']), options);
 
 %% create wave extent images
 
@@ -336,29 +384,52 @@ end
 
 %% get the wave metrics
 
-for w = 1:max(waveTable.waveNumber)
+waveDFAverage = [];
+    for w = 1:max(waveTable.waveNumber)
 
-    indxWave = waveTable.waveNumber ==w;
-    currentWave = waveTable(indxWave,:);
+        indxWave = waveTable.waveNumber ==w;
+        currentWave = waveTable(indxWave,:);
 
-    % wave frames
-    waveFrameFirst(w) = currentWave.Frame(1);
-    waveFrameLast(w) = currentWave.Frame(end);
+        % wave frames
+        waveFrameFirst(w) = currentWave.Frame(1);
+        waveFrameLast(w) = currentWave.Frame(end);
 
-    % wave time on/off
-    waveTimeOn(w) = exStruct.frameInfo.frameTime(waveFrameFirst(w));
-    waveTimeOff(w) = exStruct.frameInfo.frameTime(waveFrameLast(w));
+        % wave time on/off
+        waveTimeOn(w) = exStruct.frameInfo.frameTime(waveFrameFirst(w));
+        waveTimeOff(w) = exStruct.frameInfo.frameTime(waveFrameLast(w));
 
-    % average DF/F
-    DF_PixelList = [];
-    for cc = 1:height(currentWave)
-        currentDF_Frame = exStruct.dF(:,:,currentWave.Frame(cc));
-        currentPixels = currentDF_Frame(currentWave.PixelIdxList{cc});
-        DF_PixelList = [DF_PixelList; currentPixels ];
+        % wave DF average (not really useful)
+        try
+            DF_PixelList = [];
+            for cc = 1:height(currentWave)
+                currentDF_Frame = exStruct.dF(:,:,currentWave.Frame(cc));
+                currentPixels = currentDF_Frame(currentWave.PixelIdxList{cc});
+                DF_PixelList = [DF_PixelList; currentPixels ];
+            end
+
+            waveDFAverage(w) = mean(DF_PixelList);
+        catch
+
+        end
+
+        % wave trajectory
+        count = 1;
+        for fr = waveFrameFirst(w):waveFrameLast(w)
+            currentWaveFrame = currentWave(currentWave.Frame == fr,:);
+            [~,maxSzInd] = max(currentWaveFrame.Area);
+            centerPerFrame{w}(count,:) = currentWaveFrame.Centroid(maxSzInd,:);
+            count = count + 1;
+        end
+        
+        for i = 1:length(centerPerFrame{w})-1
+            % centroid distance per frame
+            distancePerFramePix{w}(i)= pdist([centerPerFrame{w}(i+1,:) ;centerPerFrame{w}(i,:)], 'euclidean');
+            distancePerFrameMicron{w}(i)= distancePerFramePix{w}(i) * exStruct.image.pixelSize;
+
+            % speed per frame
+             speedPerFrameMicronSec{w}(i) = distancePerFrameMicron{w}(i) / exStruct.framePeriod;
+        end
     end
-
-    waveDFAverage(w) = mean(DF_PixelList);
-end
 
 %% add into waves
 waves.waveFrameFirst = waveFrameFirst;
@@ -366,6 +437,10 @@ waves.waveFrameLast = waveFrameLast;
 waves.waveTimeOn = waveTimeOn;
 waves.waveTimeOff = waveTimeOff;
 waves.waveDFAverage = waveDFAverage;
+waves.centerPerFrame = centerPerFrame;
+waves.distancePerFramePix = distancePerFramePix;
+waves.distancePerFrameMicron = distancePerFrameMicron;
+waves.speedPerFrameMicronSec = speedPerFrameMicronSec;
 
 exStruct.waves = waves;
 
