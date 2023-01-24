@@ -35,17 +35,22 @@ end
 
 noOfImagesForAlignment = 50; % number of brightest images used for motion correction template image
 
-%% read in nd2 file
-[imStack, metaData] = readFLAMEData(filePath);
-
-%% read in images
-
-% split into channels
-imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
-imStackCal = squeeze(imStack(:,:,calciumChan,:));
-
 %% get save folder locations
-[folderParts, name ] = fileparts(filePath);
+[folderParts, name, ext ] = fileparts(filePath);
+
+%% read in image file
+if strcmp(ext, '.nd2')
+    [imStack, metaData] = readFLAMEData(filePath);
+    % split into channels
+    imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
+    imStackCal = squeeze(imStack(:,:,calciumChan,:));
+else
+    imStackCal = read_Tiffs(filePath); 
+    metaData = [];
+    metaData.filePath = filePath;
+    metaData.rate = 10;
+    metaData.image.pixelNum = size(imStackCal, 1);
+end
 
 %% motion correction
 

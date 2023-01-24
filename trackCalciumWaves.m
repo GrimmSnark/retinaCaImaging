@@ -14,14 +14,14 @@ function trackCalciumWaves(filepathDF, thresholdVal, waveMinSize, overBBLimit)
 %                     OPTIONAL, DEFAULT = 300
 
 %% open FIJI
-% initalize MIJI 
+% initalize MIJI
 intializeMIJ;
 
 %% defaults
 
 % percent of brightest image range to use for thresholding
 if nargin < 2 || isempty(thresholdVal)
-   thresholdVal = 0.95; 
+    thresholdVal = 0.95;
 end
 
 % wave object area minimum in pixel^2
@@ -30,7 +30,7 @@ if nargin < 3 || isempty(waveMinSize)
 end
 
 if nargin < 4 || isempty(overBBLimit)
-    overBBLimit = 0.01 ; % 2 percent limit for bounding box overlap 
+    overBBLimit = 0.01 ; % 2 percent limit for bounding box overlap
 end
 minFrameThreshold = 3;
 minAreaPercentChange = 0.25; % 25 percent
@@ -52,7 +52,7 @@ end
 downSampleFactor = exStruct.image.pixelNum/size(tifStack,1);
 exStruct.downsampledRes = downSampleFactor*exStruct.image.pixelSize;
 
-      
+
 %% gaus blur
 tifGaus = imgaussfilt(tifStack,4);
 
@@ -158,12 +158,12 @@ for fr = frames'
             waveTable.Group(indexBB(possCombs(ss,2))) = possCombs(ss,3);
         end
 
-%         imshow(tifTreshFilled(:,:,fr))
-%         hold on
-%         for vv = 1:size(currentFrameBB,1)
-%             rectangle('Position', currentFrameBB(vv,:), 'EdgeColor','r');
-%         end
-%         title(['Frame No: ' num2str(fr)]);
+        %         imshow(tifTreshFilled(:,:,fr))
+        %         hold on
+        %         for vv = 1:size(currentFrameBB,1)
+        %             rectangle('Position', currentFrameBB(vv,:), 'EdgeColor','r');
+        %         end
+        %         title(['Frame No: ' num2str(fr)]);
 
     else
         waveTable.Group(frameObjIn) = 0;
@@ -305,6 +305,81 @@ waveTable.waveNumber = newWaveNo;
 %% add wave table to waves struct
 waves.waveTable = waveTable;
 
+%% get the wave metrics
+waveDFAverage = [];
+for w = 1:max(waveTable.waveNumber)
+
+    indxWave = waveTable.waveNumber ==w;
+    currentWave = waveTable(indxWave,:);
+
+    % wave frames
+    waveFrameFirst(w) = currentWave.Frame(1);
+    waveFrameLast(w) = currentWave.Frame(end);
+
+    % wave time on/off
+    waveTimeOn(w) = exStruct.frameInfo.frameTime(waveFrameFirst(w));
+    waveTimeOff(w) = exStruct.frameInfo.frameTime(waveFrameLast(w));
+
+    % wave DF average (not really useful)
+    try
+        DF_PixelList = [];
+        for cc = 1:height(currentWave)
+            currentDF_Frame = exStruct.dF(:,:,currentWave.Frame(cc));
+            currentPixels = currentDF_Frame(currentWave.PixelIdxList{cc});
+            DF_PixelList = [DF_PixelList; currentPixels ];
+        end
+
+        waveDFAverage(w) = mean(DF_PixelList);
+    catch
+
+    end
+
+    % wave trajectory
+    count = 1;
+    for fr = waveFrameFirst(w):waveFrameLast(w)
+        currentWaveFrame = currentWave(currentWave.Frame == fr,:);
+        [~,maxSzInd] = max(currentWaveFrame.Area);
+        centerPerFrame{w}(count,:) = currentWaveFrame.Centroid(maxSzInd,:);
+        count = count + 1;
+    end
+
+    for i = 1:length(centerPerFrame{w})-1
+        % centroid distance per frame
+        distancePerFramePix{w}(i)= pdist([centerPerFrame{w}(i+1,:) ;centerPerFrame{w}(i,:)], 'euclidean');
+        distancePerFrameMicron{w}(i)= distancePerFramePix{w}(i) * exStruct.image.pixelSize;
+
+        % speed per frame
+        speedPerFrameMicronSec{w}(i) = distancePerFrameMicron{w}(i) / exStruct.framePeriod;
+        maxSpeed(w) = max(speedPerFrameMicronSec{w});
+    end
+end
+
+%% remove waves due to slow wave movement
+for w = 1:max(waveTable.waveNumber)
+    maxSpeed(w) = max(speedPerFrameMicronSec{w});
+end
+
+waveRemoveIndx = maxSpeed < 10; % less than 10 micron/second
+wave2Remove = find(waveRemoveIndx);
+waveKeepIndx = maxSpeed > 10; % more than 10 micron/second
+
+% create indx to remove
+wavetableInd2Rmv = false(length(waveTable.waveNumber),1);
+for ind2Rm = 1:length(wave2Remove)
+
+    indxWave = waveTable.waveNumber ==wave2Remove(ind2Rm);
+    wavetableInd2Rmv = indxWave + wavetableInd2Rmv;
+end
+
+wavetableInd2Rmv = logical(wavetableInd2Rmv);
+
+% remove indexes
+waveTable(wavetableInd2Rmv,:) = [];
+
+%% renumber the wave nums
+[~,~,newWaveNo] = unique(waveTable.waveNumber);
+waveTable.waveNumber = newWaveNo;
+
 %% colorize imagestack to check waves
 waveCols = distinguishable_colors(length(unique(waveTable.waveNumber)),{'w','k'});
 
@@ -369,7 +444,7 @@ for w = 1:max(waveTable.waveNumber)
 
     % colorize each pixel
     for pix = 1:length(wavePixX)
-    SDImageRGB(wavePixX(pix), wavePixY(pix) ,:) = squeeze(SDImageRGB( wavePixX(pix), wavePixY(pix),:))' .* waveCols(w,:);
+        SDImageRGB(wavePixX(pix), wavePixY(pix) ,:) = squeeze(SDImageRGB( wavePixX(pix), wavePixY(pix),:))' .* waveCols(w,:);
     end
 
     % save the things
@@ -382,65 +457,17 @@ for w = 1:max(waveTable.waveNumber)
     imwrite(SDImageRGB, fullfile(wavePicDir, sprintf('%s_wave_%03d.tif', name(1:end-5), w)));
 end
 
-%% get the wave metrics
-
-waveDFAverage = [];
-    for w = 1:max(waveTable.waveNumber)
-
-        indxWave = waveTable.waveNumber ==w;
-        currentWave = waveTable(indxWave,:);
-
-        % wave frames
-        waveFrameFirst(w) = currentWave.Frame(1);
-        waveFrameLast(w) = currentWave.Frame(end);
-
-        % wave time on/off
-        waveTimeOn(w) = exStruct.frameInfo.frameTime(waveFrameFirst(w));
-        waveTimeOff(w) = exStruct.frameInfo.frameTime(waveFrameLast(w));
-
-        % wave DF average (not really useful)
-        try
-            DF_PixelList = [];
-            for cc = 1:height(currentWave)
-                currentDF_Frame = exStruct.dF(:,:,currentWave.Frame(cc));
-                currentPixels = currentDF_Frame(currentWave.PixelIdxList{cc});
-                DF_PixelList = [DF_PixelList; currentPixels ];
-            end
-
-            waveDFAverage(w) = mean(DF_PixelList);
-        catch
-
-        end
-
-        % wave trajectory
-        count = 1;
-        for fr = waveFrameFirst(w):waveFrameLast(w)
-            currentWaveFrame = currentWave(currentWave.Frame == fr,:);
-            [~,maxSzInd] = max(currentWaveFrame.Area);
-            centerPerFrame{w}(count,:) = currentWaveFrame.Centroid(maxSzInd,:);
-            count = count + 1;
-        end
-        
-        for i = 1:length(centerPerFrame{w})-1
-            % centroid distance per frame
-            distancePerFramePix{w}(i)= pdist([centerPerFrame{w}(i+1,:) ;centerPerFrame{w}(i,:)], 'euclidean');
-            distancePerFrameMicron{w}(i)= distancePerFramePix{w}(i) * exStruct.image.pixelSize;
-
-            % speed per frame
-             speedPerFrameMicronSec{w}(i) = distancePerFrameMicron{w}(i) / exStruct.framePeriod;
-        end
-    end
 
 %% add into waves
-waves.waveFrameFirst = waveFrameFirst;
-waves.waveFrameLast = waveFrameLast;
-waves.waveTimeOn = waveTimeOn;
-waves.waveTimeOff = waveTimeOff;
-waves.waveDFAverage = waveDFAverage;
-waves.centerPerFrame = centerPerFrame;
-waves.distancePerFramePix = distancePerFramePix;
-waves.distancePerFrameMicron = distancePerFrameMicron;
-waves.speedPerFrameMicronSec = speedPerFrameMicronSec;
+waves.waveFrameFirst = waveFrameFirst(waveKeepIndx);
+waves.waveFrameLast = waveFrameLast(waveKeepIndx);
+waves.waveTimeOn = waveTimeOn(waveKeepIndx);
+waves.waveTimeOff = waveTimeOff(waveKeepIndx);
+waves.waveDFAverage = waveDFAverage(waveKeepIndx);
+waves.centerPerFrame = centerPerFrame(waveKeepIndx);
+waves.distancePerFramePix = distancePerFramePix(waveKeepIndx);
+waves.distancePerFrameMicron = distancePerFrameMicron(waveKeepIndx);
+waves.speedPerFrameMicronSec = speedPerFrameMicronSec(waveKeepIndx);
 
 exStruct.waves = waves;
 

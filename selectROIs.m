@@ -146,6 +146,6 @@ MIJ.closeAllWindows;
 
 %% update and save exStruct
 
-exStruct.cellCount = ROInumber;
+exStruct.cells.cellCount = ROInumber;
 save(exStructPath, 'exStruct');
 end

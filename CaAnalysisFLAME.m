@@ -29,6 +29,7 @@ end
 intializeMIJ;
 RM = ij.plugin.frame.RoiManager();
 RC = RM.getInstance();
+RC.reset();
 
 %% load metaStruct
 exStruct = load(exStructPath);
@@ -69,9 +70,9 @@ ROIobjects = RC.getRoisAsArray;
 cellROIs = ROIobjects(1:ROInumber);
 neuropilROIs = ROIobjects(ROInumber+1:end);
 
-exStruct.labeledCellROI = createLabeledROIFromImageJPixels([exStruct.image.pixelNum exStruct.image.pixelNum], cellROIs);
-exStruct.labeledNeuropilROI = createLabeledROIFromImageJPixels([exStruct.image.pixelNum exStruct.image.pixelNum], neuropilROIs);
-exStruct.averageROIRadius = averageROIRadius;
+exStruct.cells.labeledCellROI = createLabeledROIFromImageJPixels([exStruct.image.pixelNum exStruct.image.pixelNum], cellROIs);
+exStruct.cells.labeledNeuropilROI = createLabeledROIFromImageJPixels([exStruct.image.pixelNum exStruct.image.pixelNum], neuropilROIs);
+exStruct.cells.averageROIRadius = averageROIRadius;
 
 % does calcium trace extraction
 exStruct = CaExtractionFLAME(exStruct, baselineSubType);

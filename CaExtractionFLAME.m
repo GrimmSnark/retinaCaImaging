@@ -40,20 +40,27 @@ RM = ij.plugin.frame.RoiManager();
 RC = RM.getInstance();
 
 %% read in nd2 file
-imStack = readFLAMEData(exStruct.filePath);
 
-%% read in images
+[~, ~, ext ] = fileparts(exStruct.filePath);
 
-% split into channels
-imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(exStruct.colours.emWavelength), []);
-vol = squeeze(imStack(:,:,channel2Use,:));
+%% read in image file
+if strcmp(ext, '.nd2')
+    imStack = readFLAMEData(exStruct.filePath);
+    %% read in images
+    % split into channels
+    imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(exStruct.colours.emWavelength), []);
+    vol = squeeze(imStack(:,:,channel2Use,:));
+
+else
+    vol = read_Tiffs(exStruct.filePath);
+end
 
 
 % apply imageregistration shifts if there are shifts to apply
 if isprop(exStruct, 'options_nonrigid') && ~isempty(exStruct.options_nonrigid) % if using non rigid correctionn
     registeredVol = apply_shifts(vol,exStruct.xyShifts,exStruct.options_nonrigid);
     % elseif  ~isempty(exStruct.xyShifts) && isfield(exStruct, 'xyShifts')
-elseif isfield(exStruct, 'xyShifts')
+elseif isfield(exStruct, 'xyShifts')  && ~isempty(exStruct.xyShifts)
     registeredVol = shiftImageStack(vol,exStruct.xyShifts([2 1],:)'); % Apply actual shifts to tif stack
 else % if there are no motion correction options, ie the image stack loaded is already motion corrected
     registeredVol = vol;
@@ -65,12 +72,12 @@ registeredVolMIJI = MIJ.createImage( 'Registered Volume', registeredVol,true);
 %% start running raw trace extraction
 
 % allocate fields
-exStruct.rawF = [];
-exStruct.rawF_neuropil =[];
-exStruct.xPos = zeros(exStruct.cellCount,1);
-exStruct.yPos = zeros(exStruct.cellCount,1);
+exStruct.cells.rawF = [];
+exStruct.cells.rawF_neuropil =[];
+exStruct.cells.xPos = zeros(exStruct.cells.cellCount,1);
+exStruct.cells.yPos = zeros(exStruct.cells.cellCount,1);
 
-for x = 1:exStruct.cellCount
+for x = 1:exStruct.cells.cellCount
     % Select cell ROI in ImageJ/FIJI
     fprintf('Processing Cell %d\n',x)
 
@@ -78,8 +85,8 @@ for x = 1:exStruct.cellCount
     RC.select(x-1); % Select current cell
     currentROI = RC.getRoi(x-1);
 
-    exStruct.yPos(x) = currentROI.getYBase;
-    exStruct.xPos(x) = currentROI.getXBase;
+    exStruct.cells.yPos(x) = currentROI.getYBase;
+    exStruct.cells.xPos(x) = currentROI.getXBase;
 
 
     % Get the fluorescence timecourse for the cell and neuropil ROI by
@@ -93,17 +100,17 @@ for x = 1:exStruct.cellCount
 
         if isNeuropilROI
             %RC.setName(sprintf('Neuropil ROI %d',i));
-            exStruct.rawF_neuropil(x,:) = RT(:,2);
+            exStruct.cells.rawF_neuropil(x,:) = RT(:,2);
         else
             %RC.setName(sprintf('Cell ROI %d',i));
-            exStruct.rawF(x,:) = RT(:,2);
-            RC.select((x-1)+exStruct.cellCount); % Now select the associated neuropil ROI
+            exStruct.cells.rawF(x,:) = RT(:,2);
+            RC.select((x-1)+exStruct.cells.cellCount); % Now select the associated neuropil ROI
         end
     end
 end
 
 %% subtract neuropil signal
-exStruct.baseline  = 0*exStruct.rawF;
+exStruct.cells.baseline  = 0*exStruct.cells.rawF;
 
 switch baselineSubType
 
@@ -111,19 +118,19 @@ switch baselineSubType
         %% expotential bleaching fit then rolling ball baseline median percentile filter
 
         % Define a moving and fluorescence baseline using a percentile filter
-        for q =1:exStruct.cellCount
+        for q =1:exStruct.cells.cellCount
             fprintf('Computing baseline for cell %d using Exp bleach fit and baseline subtraction\n', q);
 
             % fit exp curve to remove bleaching
-            [~, exStruct.baslineBleaching(q,:)] = fitexpCurve(1:size(exStruct.rawF,2), exStruct.rawF(q,:));
+            [~, exStruct.cells.baslineBleaching(q,:)] = fitexpCurve(1:size(exStruct.cells.rawF,2), exStruct.cells.rawF(q,:));
 
             % baseline subtraction
-            exStruct.baseline(q,:) = baselinePercentileFilter(exStruct.baslineBleaching(q,:)', exStruct.fps ,30);
+            exStruct.cells.baseline(q,:) = baselinePercentileFilter(exStruct.cells.baslineBleaching(q,:)', exStruct.cells.fps ,30);
 
         end
 
         % computer delta F/F traces
-        exStruct.dF = (exStruct.baslineBleaching-exStruct.baseline)./exStruct.baseline;
+        exStruct.cells.dF = (exStruct.cells.baslineBleaching-exStruct.cells.baseline)./exStruct.cells.baseline;
 
     case 2
         %% Annulus neuropil subtraction and kernal density estimation for percentile filter
@@ -131,29 +138,29 @@ switch baselineSubType
         % Compute the neuropil-contributed signal from our cells, and eliminate
         % them from our raw cellular trace
 
-        [exStruct.correctedF_Neuropil, exStruct.neuropCorrPars]=estimateNeuropil(exStruct.rawF,exStruct.rawF_neuropil); % neuropil subtraction calculated from Dipoppa et al 2018
+        [exStruct.cells.correctedF, exStruct.cells.neuropCorrPars]=estimateNeuropil(exStruct.cells.rawF,exStruct.cells.rawF_neuropil); % neuropil subtraction calculated from Dipoppa et al 2018
 
         % Define a moving and fluorescence baseline using a percentile filter
 
-        for q =1:exStruct.cellCount
+        for q =1:exStruct.cells.cellCount
             fprintf('Computing baseline for cell %d \n', q);
 
             % Compute a moving baseline with a 60s percentile lowpass filter smoothed by a 60s Butterworth filter
             offset = 5000; % helps get around dividing my zero errors...
-            [~,percentileFiltCutOff(q)] = estimate_percentile_level((exStruct.correctedF(q,:)'+offset),size(registeredVol,3),size(registeredVol,3));
+            [~,percentileFiltCutOff(q)] = estimate_percentile_level((exStruct.cells.correctedF(q,:)'+offset),size(registeredVol,3),size(registeredVol,3));
 
             lowPassFiltCutOff    = 30; %in seconds
-            exStruct.baseline(q,:)  = baselinePercentileFilter((exStruct.correctedF(q,:)'+offset),exStruct.rate,lowPassFiltCutOff,percentileFiltCutOff(q));
+            exStruct.cells.baseline(q,:)  = baselinePercentileFilter((exStruct.cells.correctedF(q,:)'+offset),exStruct.rate,lowPassFiltCutOff,percentileFiltCutOff(q));
 
         end
 
         % store percentile rank filter cutoff for each cell
-        exStruct.percentileFiltCutOff = percentileFiltCutOff;
+        exStruct.cells.percentileFiltCutOff = percentileFiltCutOff;
 
         % store corrected baseline (i.e remove offset)
-        exStruct.baselineCorrected = exStruct.baseline-offset;
+        exStruct.cells.baselineCorrected = exStruct.cells.baseline-offset;
 
         % computer delta F/F traces
-        exStruct.dF = ((exStruct.correctedF+offset)-exStruct.baseline)./exStruct.baseline;
+        exStruct.cells.dF = ((exStruct.cells.correctedF+offset)-exStruct.cells.baseline)./exStruct.cells.baseline;
 end
 end
