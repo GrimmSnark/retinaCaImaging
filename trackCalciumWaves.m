@@ -97,7 +97,7 @@ disp('Thresholding done...');
 waveTable = [];
 % opticFlow =opticalFlowHS;
 for fr = 1:size(threshBinary,3)
-    shapeProps = regionprops("table", threshBinary(:,:,fr),"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList");
+    shapeProps = regionprops("table", threshBinary(:,:,fr),"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList","ConvexHull");
     shapeProps = sortrows(shapeProps,"Area", "descend");
 
     % limit to objects larger than min

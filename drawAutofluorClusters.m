@@ -75,13 +75,26 @@ end
 ROIobjects = RC.getRoisAsArray;
 
 pixelIm = stackImp.getWidth;
-clusterCellMask = createLabeledROIFromImageJPixels([pixelIm pixelIm] ,ROIobjects);
 
+% full size image
+clusterCellMask = createLabeledROIFromImageJPixels([pixelIm pixelIm] ,ROIobjects);
 shapeProps = regionprops("table", clusterCellMask,"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList", "ConvexHull");
+
+% downsampled image
+rz = 512/pixelIm;
+clusterCellMaskDownsize = imresize(clusterCellMask,rz);
+shapePropsDownsize = regionprops("table", clusterCellMaskDownsize,"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList", "ConvexHull");
 
 %% save into exStruct
 exStruct.clusterCells.mask = clusterCellMask;
 exStruct.clusterCells.clusterProps = shapeProps;
+
+exStruct.clusterCells.maskDS = clusterCellMaskDownsize;
+exStruct.clusterCells.clusterPropsDS = shapePropsDownsize;
+
+
+% save data
+save(exStructPath, "exStruct", '-v7.3');
 
 %% Clean up windows
 stackImp = ij.IJ.getImage();
