@@ -82,7 +82,7 @@ shapeProps = regionprops("table", clusterCellMask,"Area", "BoundingBox","Centroi
 
 % downsampled image
 rz = 512/pixelIm;
-clusterCellMaskDownsize = imresize(clusterCellMask,rz);
+clusterCellMaskDownsize = imresize(clusterCellMask,rz, 'nearest');
 shapePropsDownsize = regionprops("table", clusterCellMaskDownsize,"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList", "ConvexHull");
 
 %% save into exStruct
