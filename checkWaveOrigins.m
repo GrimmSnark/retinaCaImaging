@@ -23,6 +23,13 @@ for i = 1:length(waves.waveArea)
             clusterHull = exStruct.clusterCells.clusterPropsDS.ConvexHull{cl};
             in = polyxpoly(minObjectHull{ob}(:,1), minObjectHull{ob}(:,2),clusterHull(:,1), clusterHull(:,2));
 
+            minObjectPoly.x = minObjectHull{ob}(:,1);
+            minObjectPoly.y = minObjectHull{ob}(:,2);
+
+            clusterP.x = clusterHull(:,1);
+            clusterP.y =  clusterHull(:,2);
+            edgeDistanceWaveStartPix(i,cl) = min_dist_between_two_polygons(minObjectPoly, clusterP);
+
             % plots the wave objects and cluster locations
 
             %             mask = exStruct.clusterCells.maskDS;
@@ -64,6 +71,9 @@ end
 %% save stuff into exStruct
 exStruct.waves.waveStartInCl = waveStartInCl;
 exStruct.waves.wavePassInCl = wavePassInCl;
+exStruct.waves.edgeDistanceWaveStartClPix = edgeDistanceWaveStartPix;
+exStruct.waves.edgeDistanceWaveStartClPix = edgeDistanceWaveStartPix/exStruct.image.pixelSize;
+
 
 % save data
 save(exStructPath, "exStruct", '-v7.3');
