@@ -45,7 +45,7 @@ if strcmp(ext, '.nd2')
     imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
     imStackCal = squeeze(imStack(:,:,calciumChan,:));
 else
-    imStackCal = read_Tiffs(filePath); 
+    imStackCal = read_Tiffs(filePath);
     metaData = [];
     metaData.filePath = filePath;
     metaData.rate = 10;
@@ -77,6 +77,9 @@ end
 
 if createDFPixelMovieFlag == 1
     [dFStack, metaData] = createDFPixelImageStack(imStackCal, metaData);
+
+    % save dF image
+    saveastiff(dFStack, fullfile(folderParts, [name '_dF_F.tif']));
 
     % create SD of DF movie
     imageDF_SD = std(double(dFStack),[],3);
