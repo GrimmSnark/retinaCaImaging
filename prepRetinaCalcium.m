@@ -1,4 +1,4 @@
-function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, createDFPixelMovieFlag)
+function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, createDFPixelMovieFlag, zeroDFStack)
 % This function does basic preprocessing of t series imaging data including
 % meta data, image registration,  creates dF_F pixelwise movie and summary
 % SD images from .nd2 files from FLAME system
@@ -31,6 +31,10 @@ end
 
 if nargin < 4 || isempty(createDFPixelMovieFlag)
     createDFPixelMovieFlag = 1;
+end
+
+if nargin < 5 || isempty(zeroDFStack)
+    zeroDFStack = 0;
 end
 
 noOfImagesForAlignment = 50; % number of brightest images used for motion correction template image
@@ -77,6 +81,11 @@ end
 
 if createDFPixelMovieFlag == 1
     [dFStack, metaData] = createDFPixelImageStack(imStackCal, metaData);
+
+    % zero out the minus values if flag
+    if zeroDFStack
+        dFStack(dFStack < 0) = 0;
+    end
 
     % save dF image
     saveastiff(dFStack, fullfile(folderParts, [name '_dF_F.tif']));

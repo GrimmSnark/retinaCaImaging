@@ -41,6 +41,7 @@ tifStack = read_Tiffs(filepathDF);
 
 %% load in exStruct
 exStruct = load(fullfile(folderPath,[name(1:end-5) '_ExStruct.mat']));
+disp('Loaded in exStruct.mat')
 
 try
     exStruct = exStruct.exStruct;
