@@ -24,7 +24,7 @@ if metaData.image.pixelNum > 512
 
         % downsample to 512
         imStackResize(:,:,xx) = imresize(imgStack(:,:,xx), downSampleFactor);
-        metaData.downsampledRes = downSampleFactor * exStruct.image.pixelSize;
+        metaData.downsampledRes = downSampleFactor * metaData.image.pixelSize;
     end
 else
     imStackResize = imgStack;
