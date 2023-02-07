@@ -44,10 +44,17 @@ exStruct = load(fullfile(folderPath,[name(1:end-5) '_ExStruct.mat']));
 disp('Loaded in exStruct.mat')
 
 try
+    disp('In try loop');
     exStruct = exStruct.exStruct;
 catch
     exStruct = exStruct.metaData;
 end
+
+% zero out pixel line around the edge of frame to remove artefact
+tifStack(1,:,:) = 0;
+tifStack(end,:,:) = 0;
+tifStack(:,1,:) = 0;
+tifStack(:,end,:) = 0;
 
 %% get the downsampled res factor
 downSampleFactor = exStruct.image.pixelNum/size(tifStack,1);
@@ -55,6 +62,7 @@ exStruct.downsampledRes = downSampleFactor*exStruct.image.pixelSize;
 
 
 %% gaus blur
+disp('Gaus Blur')
 tifGaus = imgaussfilt(tifStack,4);
 
 %% remove background
@@ -66,11 +74,14 @@ highpassFilteredTrace = baselinePercentileFilter(frameBrightness,3,10,percent2Su
 % hold on
 % plot(highpassFilteredTrace);
 
+disp('Frame background subtraction')
 for x = 1:size(tifGaus,3)
     tifGauSub(:,:,x) = tifGaus(:,:,x) - uint16(highpassFilteredTrace(x));
 end
 
 %% move to FIJI to use their threshold
+
+disp('Transfer to FIJI')
 stackImp = MIJ.createImage('tifs', tifGauSub, 1);
 
 % get frame brightness and the 3/4 brightest frame number
@@ -85,11 +96,12 @@ MIJ.run("Convert to Mask", "method=Default background=Dark black");
 MIJ.run("Fill Holes", "stack");
 
 tifTreshFilled = im2uint8(rescale(MIJ.getImage('tifs')));
+disp('On window cleanup');
 
 % Clean up windows
 stackImp.changes = false;
-stackImp.close;
-MIJ.closeAllWindows;
+stackImp.draw
+stackImp.close
 
 threshBinary = imbinarize(tifTreshFilled);
 disp('Thresholding done...');
@@ -303,9 +315,6 @@ waveTable = waveTable(removeFlag,:);
 [~,~,newWaveNo] = unique(waveTable.waveNumber);
 waveTable.waveNumber = newWaveNo;
 
-%% add wave table to waves struct
-waves.waveTable = waveTable;
-
 %% get the wave metrics
 waveDFAverage = [];
 for w = 1:max(waveTable.waveNumber)
@@ -339,9 +348,12 @@ for w = 1:max(waveTable.waveNumber)
     count = 1;
     for fr = waveFrameFirst(w):waveFrameLast(w)
         currentWaveFrame = currentWave(currentWave.Frame == fr,:);
-        [~,maxSzInd] = max(currentWaveFrame.Area);
-        centerPerFrame{w}(count,:) = currentWaveFrame.Centroid(maxSzInd,:);
-        count = count + 1;
+
+        if ~isempty(currentWaveFrame)
+            [~,maxSzInd] = max(currentWaveFrame.Area);
+            centerPerFrame{w}(count,:) = currentWaveFrame.Centroid(maxSzInd,:);
+            count = count + 1;
+        end
     end
 
     for i = 1:length(centerPerFrame{w})-1
@@ -460,6 +472,7 @@ end
 
 
 %% add into waves
+waves.waveTable = waveTable;
 waves.waveFrameFirst = waveFrameFirst(waveKeepIndx);
 waves.waveFrameLast = waveFrameLast(waveKeepIndx);
 waves.waveTimeOn = waveTimeOn(waveKeepIndx);
