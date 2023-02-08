@@ -346,15 +346,34 @@ for w = 1:max(waveTable.waveNumber)
 
     % wave trajectory
     count = 1;
-    for fr = waveFrameFirst(w):waveFrameLast(w)
+    for fr = waveFrameLast(w):-1: waveFrameFirst(w)
         currentWaveFrame = currentWave(currentWave.Frame == fr,:);
 
         if ~isempty(currentWaveFrame)
-            [~,maxSzInd] = max(currentWaveFrame.Area);
-            centerPerFrame{w}(count,:) = currentWaveFrame.Centroid(maxSzInd,:);
+
+            % if more than one frame object find closest
+            if height(currentWaveFrame) > 1 && count > 1 % if in the middle of the wave
+
+                % weighted distance by size of object
+                [objectDis  ] = pdist2(currentWaveFrame.Centroid, centerPerFrame{w}(count-1,:), 'euclidean');
+                weightedDistance = currentWaveFrame.Area ./ objectDis;
+                [~, in] = max(weightedDistance);
+
+            elseif height(currentWaveFrame) > 1 && count == 1 % if at the start of the wave with mutiple objects
+
+                [~, in] = max(currentWaveFrame.Area);
+            else
+
+                in = 1;
+            end
+
+            centerPerFrame{w}(count,:) = currentWaveFrame.Centroid(in,:);
             count = count + 1;
         end
     end
+
+    % flip the trajectory to the start
+    centerPerFrame{w} = flip( centerPerFrame{w});
 
     for i = 1:length(centerPerFrame{w})-1
         % centroid distance per frame

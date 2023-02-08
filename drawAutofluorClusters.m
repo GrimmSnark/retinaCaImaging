@@ -1,10 +1,18 @@
-function drawAutofluorClusters(clusterImg, exStructPath)
+function drawAutofluorClusters(clusterImg, exStructPath, imgProcess)
+
+
+if nargin < 3 || isempty(imgProcess)
+    imgProcess = 1;
+end
 
 %% open FIJI
-% initalize MIJI 
+% initalize MIJI
 intializeMIJ;
+MIJ.closeAllWindows();
+
 RM = ij.plugin.frame.RoiManager();
 RC = RM.getInstance();
+RC.reset();
 
 %% load in exStruct
 exStruct = load(exStructPath);
@@ -25,14 +33,34 @@ imageNamesJava = MIJ.getListImages;
 textChanGrand =[];
 
 for x = 1:length(imageNamesJava)
-windowNames{x} = char(imageNamesJava(x));
-MIJ.selectWindow(windowNames{x});
-MIJ.run('Gaussian Blur...', 'sigma=3');
-MIJ.run("Subtract Background...", "rolling=10 sliding");
-MIJ.run("Enhance Contrast...", "saturated=0.35");
 
-textChan = sprintf('c%i=%s ',x, windowNames{x});
-textChanGrand = [textChanGrand textChan];
+    windowNames{x} = char(imageNamesJava(x));
+
+    if stackImp.getNFrames > 1
+        MIJ.selectWindow([windowNames{x}]);
+
+        MIJ.run("Z Project...", "projection=[Max Intensity]");
+
+        if imgProcess == 1
+            MIJ.run('Gaussian Blur...', 'sigma=3');
+            MIJ.run("Subtract Background...", "rolling=10 sliding");
+            MIJ.run("Enhance Contrast...", "saturated=0.35");
+        end
+
+        textChan = sprintf('c%i=MAX_%s ',x, windowNames{x});
+    else
+        MIJ.selectWindow([windowNames{x}]);
+
+        if imgProcess == 1
+            MIJ.run('Gaussian Blur...', 'sigma=3');
+            MIJ.run("Subtract Background...", "rolling=10 sliding");
+            MIJ.run("Enhance Contrast...", "saturated=0.35");
+        end
+
+        textChan = sprintf('c%i=%s ',x, windowNames{x});
+    end
+
+    textChanGrand = [textChanGrand textChan];
 end
 
 MIJ.run("Merge Channels...", [textChanGrand 'create']);
@@ -58,11 +86,11 @@ response = questdlg(questText, ...
 
 % deals with repsonse
 switch response
-    
+
     case 'Continue' % if continue, goes on with analysis
         ROInumber = RC.getCount();
         disp(['You have selected ' num2str(ROInumber) ' ROIs, moving on...']);
-        
+
     case 'Exit Script' % if you want to exit and end
         killFlag = 1;
         return
@@ -92,14 +120,19 @@ exStruct.clusterCells.clusterProps = shapeProps;
 exStruct.clusterCells.maskDS = clusterCellMaskDownsize;
 exStruct.clusterCells.clusterPropsDS = shapePropsDownsize;
 
-
 % save data
 save(exStructPath, "exStruct", '-v7.3');
 
 %% Clean up windows
-stackImp = ij.IJ.getImage();
-stackImp.changes = false;
-stackImp.close;
+
+nImages = ij.WindowManager.getImageCount;
+
+for n = 1:nImages
+    stackImp = ij.IJ.getImage();
+    stackImp.changes = false;
+    stackImp.close;
+end
+
 MIJ.closeAllWindows;
 
 end
