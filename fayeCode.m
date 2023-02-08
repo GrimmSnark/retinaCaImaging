@@ -65,10 +65,10 @@ for c= 1:exStruct.cellCount
             %             hold off
 
             % add into structure
-            riseTime{c}(sp) = riseTime;
-            decayTime{c}(sp) = decayTime;
-            riseTimeIndx{c}(sp) = spikeLocs{c}(sp)-riseTimeIndx;
-            decayTimeIndx{c}(sp) = spikeLocs{c}(sp)+crossIndxFall;
+            riseTimeStruct{c}(sp) = riseTime;
+            decayTimeStruct{c}(sp) = decayTime;
+            riseTimeIndxStruct{c}(sp) = spikeLocs{c}(sp)-riseTimeIndx;
+            decayTimeIndxStruct{c}(sp) = spikeLocs{c}(sp)+crossIndxFall;
         end
     else
     end
@@ -79,10 +79,10 @@ end
 exStruct.spikes.spikeAmp = spikeAmp;
 exStruct.spikes.spikeLocs = spikeLocs;
 exStruct.spikes.spikeWidths = spikeWidths;
-exStruct.spikes.riseTime = riseTime;
-exStruct.spikes.decayTime = decayTime;
-exStruct.spikes.riseTimeIndx = riseTimeIndx;
-exStruct.spikes.decayTimeIndx = decayTimeIndx;
+exStruct.spikes.riseTime = riseTimeStruct;
+exStruct.spikes.decayTime = decayTimeStruct;
+exStruct.spikes.riseTimeIndx = riseTimeIndxStruct;
+exStruct.spikes.decayTimeIndx = decayTimeIndxStruct;
 
 % save data
 save(exStructPath, "exStruct", '-v7.3');
