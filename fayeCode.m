@@ -53,6 +53,7 @@ for c= 1:exStruct.cellCount
             fallSample = dFTrace(spikeLocs{c}(sp):sampleEnd);
 
             % rise/decay time threshold
+%             [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinder(riseSample, fallSample, exStruct.rate);
             [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinder(riseSample, fallSample, exStruct.rate);
 
             %             plot(dFTrace)
