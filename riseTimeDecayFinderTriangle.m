@@ -1,4 +1,4 @@
-function [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinderTriangle(riseSample, fallSample, rate)
+function [riseTime, decayTime, riseThreshIndx, fallThreshIndx] = riseTimeDecayFinderTriangle(riseSample, fallSample, rate)
 % Function tries to find rise time and tau decay for calcium events.
 % Heavily based on triangle thresholding. 
 % https://www.mathworks.com/matlabcentral/answers/250257-find-turning-point-in-data
@@ -15,9 +15,9 @@ function [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinde
 %
 %          decayTime - spike decay time in seconds
 %
-%          riseTimeIndx - rise start index
+%          riseThreshIndx - rise start index
 %
-%          crossIndxFall - decay stop index
+%          fallThreshIndx - decay stop index
 
 %% data processing
 
