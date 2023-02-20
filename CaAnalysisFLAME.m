@@ -20,6 +20,15 @@ function CaAnalysisFLAME(exStructPath, baselineSubType)
 % Output- exStruct: saves structure containing all experiment info
 
 %% set defaults
+
+if nargin < 1 || isempty(exStructPath)
+   [file, path] = uigetfile({'*.mat'},...
+                          'Image File Selector');
+
+   exStructPath = fullfile(path,file);
+end
+
+
 if nargin <2 || isempty(baselineSubType)
     baselineSubType = 1;
 end

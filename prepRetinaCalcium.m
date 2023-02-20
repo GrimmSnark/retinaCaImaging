@@ -20,6 +20,13 @@ function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, creat
 %% defaults
 calciumChan = 1;
 
+if nargin < 1 || isempty(filePath)
+   [file, path] = uigetfile({'*.nd2;*.tif;*.tiff'},...
+                          'Image File Selector');
+
+   filePath = fullfile(path,file);
+end
+
 if nargin < 2 || isempty(motionCorrFlag)
     motionCorrFlag = 1;
 end

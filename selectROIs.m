@@ -11,6 +11,13 @@ function selectROIs(exStructPath)
 
 killFlag = 0;
 
+if nargin < 1 || isempty(exStructPath)
+   [file, path] = uigetfile({'*.mat'},...
+                          'Image File Selector');
+
+   exStructPath = fullfile(path,file);
+end
+
 % get the appropriate magnification for ROI image
 screenDim = get(0,'ScreenSize');
 if screenDim(3) > 2000
