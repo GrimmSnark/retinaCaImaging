@@ -108,5 +108,5 @@ imageSD = std(double(imStackCal),[],3);
 imageSD = uint16(mat2gray(imageSD) * 65535);
 saveastiff(imageSD, fullfile(folderParts, [name '_SD.tif']));
 
-save(fullfile(folderParts, [name '_ExStruct.mat']), 'metaData');
+save(fullfile(folderParts, [name '_ExStruct.mat']), 'metaData', '-v7.3');
 end
