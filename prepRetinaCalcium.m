@@ -61,6 +61,7 @@ else
     metaData.filePath = filePath;
     metaData.rate = 10;
     metaData.image.pixelNum = size(imStackCal, 1);
+    metaData.image.pixelSize = 0.41;
 end
 
 %% motion correction
