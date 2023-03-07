@@ -9,6 +9,15 @@ function fayeCode(exStructPath)
 
 
 %% load exStruct
+
+if nargin < 1 || isempty(exStructPath)
+   [file, path] = uigetfile({'*.mat'},...
+                          'Image File Selector');
+
+   exStructPath = fullfile(path,file);
+end
+
+
 exStruct = load(exStructPath);
 exStruct = exStruct.exStruct;
 
