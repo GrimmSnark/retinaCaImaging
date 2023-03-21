@@ -16,12 +16,15 @@ function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, creat
 %
 %        createDFPixelMovieFlag: flag for creating pixel wise DF_F stack
 %        and takes up time/space 0 = not saved, 1 = saved (DEFAULT)
+%
+%        zeroDFStack - 0/1 to make and negative DF signal zero for the DF
+%                      movies DEFAULT = 1                           
 
 %% defaults
 calciumChan = 1;
 
 if nargin < 1 || isempty(filePath)
-   [file, path] = uigetfile({'*.nd2;*.tif;*.tiff'},...
+   [file, path] = uigetfile({'*.nd2;*.tif;*.tiff;*.czi'},...
                           'Image File Selector');
 
    filePath = fullfile(path,file);
@@ -41,7 +44,7 @@ if nargin < 4 || isempty(createDFPixelMovieFlag)
 end
 
 if nargin < 5 || isempty(zeroDFStack)
-    zeroDFStack = 0;
+    zeroDFStack = 1;
 end
 
 noOfImagesForAlignment = 50; % number of brightest images used for motion correction template image
@@ -50,7 +53,7 @@ noOfImagesForAlignment = 50; % number of brightest images used for motion correc
 [folderParts, name, ext ] = fileparts(filePath);
 
 %% read in image file
-if strcmp(ext, '.nd2')
+if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
     [imStack, metaData] = readFLAMEData(filePath);
     % split into channels
     imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);

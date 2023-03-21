@@ -85,12 +85,21 @@ disp('Transfer to FIJI')
 stackImp = MIJ.createImage('tifs', tifGauSub, 1);
 
 % get frame brightness and the 3/4 brightest frame number
-frameBrightness = squeeze(mean(tifGauSub,[1 2]));
+% frameBrightness = squeeze(mean(tifGauSub,[1 2]));
+% 
+% [frameVal, sortedIndx ]= sort(frameBrightness, 'ascend');
+% frame2Set = round(length(frameBrightness) * thresholdVal);
 
-[frameVal, sortedIndx ]= sort(frameBrightness, 'ascend');
-frame2Set = round(length(frameBrightness) * thresholdVal);
+tif2D = reshape(tifGauSub,[],size(tifGauSub,3));
+tif2D = sort(tif2D, 1, 'descend');
+tif2D_10percent = tif2D(1:ceil(end/10),:);
 
-MIJ.setSlice(sortedIndx(frame2Set));
+frameBrightness10Perc = mean(tif2D_10percent,1);
+[frameVal10Per, sortedIndx10Per ]= sort(frameBrightness10Perc', 'ascend');
+frame2Set10Per = round(length(frameBrightness10Perc) * thresholdVal);
+
+% MIJ.setSlice(sortedIndx(frame2Set));
+MIJ.setSlice(sortedIndx10Per(frame2Set10Per));
 MIJ.run('Threshold...','setAutoThreshold=Mean');
 MIJ.run("Convert to Mask", "method=Default background=Dark black");
 MIJ.run("Fill Holes", "stack");
@@ -504,6 +513,6 @@ waves.speedPerFrameMicronSec = speedPerFrameMicronSec(waveKeepIndx);
 
 exStruct.waves = waves;
 
-save(fullfile(folderPath,[name(1:end-5) '_ExStruct.mat']), 'exStruct');
+save(fullfile(folderPath,[name(1:end-5) '_ExStruct.mat']), 'exStruct', '-v7.3');
 
 end

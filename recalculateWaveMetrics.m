@@ -64,14 +64,16 @@ for w = 1:max(waveTable.waveNumber)
     % flip the trajectory to the start
     centerPerFrame{w} = flip( centerPerFrame{w});
 
-    for i = 1:length(centerPerFrame{w})-1
-        % centroid distance per frame
-        distancePerFramePix{w}(i)= pdist([centerPerFrame{w}(i+1,:) ;centerPerFrame{w}(i,:)], 'euclidean');
-        distancePerFrameMicron{w}(i)= distancePerFramePix{w}(i) * exStruct.image.pixelSize;
+    if length(centerPerFrame{w}) >2
+        for i = 1:length(centerPerFrame{w})-1
+            % centroid distance per frame
+            distancePerFramePix{w}(i)= pdist([centerPerFrame{w}(i+1,:) ;centerPerFrame{w}(i,:)], 'euclidean');
+            distancePerFrameMicron{w}(i)= distancePerFramePix{w}(i) * exStruct.image.pixelSize;
 
-        % speed per frame
-        speedPerFrameMicronSec{w}(i) = distancePerFrameMicron{w}(i) / exStruct.framePeriod;
-        maxSpeed(w) = max(speedPerFrameMicronSec{w});
+            % speed per frame
+            speedPerFrameMicronSec{w}(i) = distancePerFrameMicron{w}(i) / exStruct.framePeriod;
+            maxSpeed(w) = max(speedPerFrameMicronSec{w});
+        end
     end
 end
 
@@ -157,8 +159,10 @@ for w = 1:max(waveTable.waveNumber)
     if ~exist(wavePicDir)
         mkdir(wavePicDir);
     else
-        rmdir(wavePicDir, 's');
-        mkdir(wavePicDir);
+        if w == 1
+            rmdir(wavePicDir, 's');
+            mkdir(wavePicDir);
+        end
     end
 
     [~, fileName] = fileparts(exStruct.filePath);
