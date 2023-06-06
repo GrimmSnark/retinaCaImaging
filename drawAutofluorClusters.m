@@ -8,13 +8,17 @@ end
 %% open FIJI
 % initalize MIJI
 intializeMIJ;
-MIJ.closeAllWindows();
 
 RM = ij.plugin.frame.RoiManager();
 RC = RM.getInstance();
 RC.reset();
 
 %% load in exStruct
+
+if nargin <2 || isempty(exStructPath)
+    exStructPath = [clusterImg(1:end-4) '_ExStruct.mat'];
+end
+
 exStruct = load(exStructPath);
 
 try
@@ -27,43 +31,50 @@ end
 
 MIJ.run('Open...', ['path=' clusterImg]);
 stackImp = ij.IJ.getImage();
-MIJ.run("Split Channels");
 
-imageNamesJava = MIJ.getListImages;
-textChanGrand =[];
+stackDim = stackImp.getDimensions();
 
-for x = 1:length(imageNamesJava)
+% if it is a multi-colour image
+if stackDim(3) > 1
+    MIJ.run("Split Channels");
 
-    windowNames{x} = char(imageNamesJava(x));
+    imageNamesJava = MIJ.getListImages;
+    textChanGrand =[];
 
-    if stackImp.getNFrames > 1
-        MIJ.selectWindow([windowNames{x}]);
+    for x = 1:length(imageNamesJava)
 
-        MIJ.run("Z Project...", "projection=[Max Intensity]");
+        windowNames{x} = char(imageNamesJava(x));
 
-        if imgProcess == 1
-            MIJ.run('Gaussian Blur...', 'sigma=3');
-            MIJ.run("Subtract Background...", "rolling=10 sliding");
-            MIJ.run("Enhance Contrast...", "saturated=0.35");
+        if stackImp.getNFrames > 1
+            ij.IJ.selectWindow([windowNames{x}]);
+
+            MIJ.run("Z Project...", "projection=[Max Intensity]");
+
+            if imgProcess == 1
+                MIJ.run('Gaussian Blur...', 'sigma=3');
+                MIJ.run("Subtract Background...", "rolling=10 sliding");
+                MIJ.run("Enhance Contrast...", "saturated=0.35");
+            end
+
+            textChan = sprintf('c%i=MAX_%s ',x, windowNames{x});
+        else
+            MIJ.selectWindow([windowNames{x}]);
+
+            if imgProcess == 1
+                MIJ.run('Gaussian Blur...', 'sigma=3');
+                MIJ.run("Subtract Background...", "rolling=10 sliding");
+                MIJ.run("Enhance Contrast...", "saturated=0.35");
+            end
+
+            textChan = sprintf('c%i=%s ',x, windowNames{x});
         end
 
-        textChan = sprintf('c%i=MAX_%s ',x, windowNames{x});
-    else
-        MIJ.selectWindow([windowNames{x}]);
-
-        if imgProcess == 1
-            MIJ.run('Gaussian Blur...', 'sigma=3');
-            MIJ.run("Subtract Background...", "rolling=10 sliding");
-            MIJ.run("Enhance Contrast...", "saturated=0.35");
-        end
-
-        textChan = sprintf('c%i=%s ',x, windowNames{x});
+        textChanGrand = [textChanGrand textChan];
     end
 
-    textChanGrand = [textChanGrand textChan];
-end
+    MIJ.run("Merge Channels...", [textChanGrand 'create']);
 
-MIJ.run("Merge Channels...", [textChanGrand 'create']);
+end
 ij.IJ.runMacro('setTool("polygon");');
 
 %% choose ROI shapes
@@ -133,6 +144,6 @@ for n = 1:nImages
     stackImp.close;
 end
 
-MIJ.closeAllWindows;
+% ij.WindowManager.closeAllWindows;
 
 end

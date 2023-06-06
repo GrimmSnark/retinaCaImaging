@@ -29,7 +29,7 @@ for c= 1:exStruct.cellCount
     % min peak height
     dF_SD = std(dFTrace);
     dFMean = mean(dFTrace);
-    minHeight = dFMean + (dF_SD *2);
+    minHeight = dFMean + (dF_SD *2.5);
     minProm = 2.5 * dF_SD;
 
     % spike detection
@@ -44,7 +44,7 @@ for c= 1:exStruct.cellCount
             sampleSt = spikeLocs{c}(sp)- (exStruct.rate * 4); % take 4 sec before peak onset
 
             % corection if peak is less than a second before start
-            if sampleSt < 0
+            if sampleSt <= 0
                 sampleSt = 1;
             end
 
@@ -63,16 +63,8 @@ for c= 1:exStruct.cellCount
 
             % rise/decay time threshold
 %             [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinder(riseSample, fallSample, exStruct.rate);
-            [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinder(riseSample, fallSample, exStruct.rate);
+            [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinderTriangle(riseSample, fallSample, exStruct.rate);
 
-            %             plot(dFTrace)
-            %             hold on
-            %             plot(spikeLocs{c}(sp), dFTrace(spikeLocs{c}(sp)), '*');
-            %
-            %             plot(spikeLocs{c}(sp)-riseTimeIndx , dFTrace(spikeLocs{c}(sp) -riseTimeIndx), 'b*');
-            %             plot(spikeLocs{c}(sp)+crossIndxFall , dFTrace(spikeLocs{c}(sp) +crossIndxFall), 'g*');
-            %
-            %             hold off
 
             % add into structure
             riseTimeStruct{c}(sp) = riseTime;
@@ -82,6 +74,22 @@ for c= 1:exStruct.cellCount
         end
     else
     end
+
+% add firing rate
+    firingRate(c) = length(riseTimeStruct{c})/ (length(exStruct.xyShifts)/exStruct.rate);
+    meanAmp(c) = sum(spikeAmp{c})/length(spikeAmp{c});
+
+    % plotting tau rise, peaks and tau decay
+
+%     plot(dFTrace)
+%     hold on
+%     plot(spikeLocs{c}(:), dFTrace(spikeLocs{c}(:)), '*');
+% 
+%     plot(riseTimeIndxStruct{c} , dFTrace(riseTimeIndxStruct{c}), 'b*');
+%     plot(decayTimeIndxStruct{c} , dFTrace(decayTimeIndxStruct{c}), 'g*');
+% 
+%     hold off
+
 end
 
 %% add everything into exStruct
@@ -93,6 +101,9 @@ exStruct.spikes.riseTime = riseTimeStruct;
 exStruct.spikes.decayTime = decayTimeStruct;
 exStruct.spikes.riseTimeIndx = riseTimeIndxStruct;
 exStruct.spikes.decayTimeIndx = decayTimeIndxStruct;
+exStruct.spikes.firingRate = firingRate; % firing rate in spk/s
+exStruct.spikes.meanSpikeAmp = meanAmp; % mean spike dF amplitude
+
 
 % save data
 save(exStructPath, "exStruct", '-v7.3');

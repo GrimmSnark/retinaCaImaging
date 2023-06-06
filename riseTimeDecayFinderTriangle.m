@@ -1,4 +1,4 @@
-function [riseTime, decayTime, riseThreshIndx, fallThreshIndx] = riseTimeDecayFinderTriangle(riseSample, fallSample, rate)
+function [riseTime, decayTime, riseThreshIndxRelative, fallThreshIndx] = riseTimeDecayFinderTriangle(riseSample, fallSample, rate)
 % Function tries to find rise time and tau decay for calcium events.
 % Heavily based on triangle thresholding. 
 % https://www.mathworks.com/matlabcentral/answers/250257-find-turning-point-in-data
@@ -15,9 +15,10 @@ function [riseTime, decayTime, riseThreshIndx, fallThreshIndx] = riseTimeDecayFi
 %
 %          decayTime - spike decay time in seconds
 %
-%          riseThreshIndx - rise start index
+%          riseThreshIndxRelative - rise start index relative to the peak
+%                                   index
 %
-%          fallThreshIndx - decay stop index
+%          fallThreshIndx - decay stop index relative to the peak index
 
 %% data processing
 
@@ -26,12 +27,26 @@ riseSampleSm = smoothdata(riseSample);
 fallSampleSm = smoothdata(fallSample);
 
 % get the elbow points
-riseThreshIndx = triangle_threshold(riseSampleSm, 'L',0);
-fallThreshIndx = triangle_threshold(fallSample, 'R',0);
+riseThreshIndx = triangle_threshold(riseSampleSm, 'L',0)-1;
+fallThreshIndx = triangle_threshold(fallSampleSm, 'R',0);
 
+% make riseThresholdINdx relative to the peak index
+riseThreshIndxRelative = (length(riseSample)- riseThreshIndx);
+
+% subplot(211)
+% plot(riseSampleSm)
+% hold on
+% scatter(riseThreshIndx,riseSampleSm(riseThreshIndx));
+% hold off
+% 
+% subplot(212)
+% plot(fallSampleSm)
+% hold on
+% scatter(fallThreshIndx,fallSampleSm(fallThreshIndx));
+% hold off
 
 % work out actual times etc
-riseTime = riseThreshIndx/ rate;
+riseTime = riseThreshIndxRelative/ rate; % makes the rise time relative to the peak point NOT the total index length!!!
 decayTime = fallThreshIndx/rate;
 
 end

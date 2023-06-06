@@ -8,6 +8,10 @@ waves = exStruct.waves;
 
 %% run through waves
 waveStartInCl = false(size(waves.waveArea))';
+wavePassInCl = false(size(waves.waveArea))';
+edgeDistanceWaveStartPix = nan(size(waves.waveArea))';
+edgeDistanceWaveStartPix = nan(size(waves.waveArea))';
+
 
 for i = 1:length(waves.waveArea)
     waveObjectsIndx = waves.waveTable.waveNumber == i;
@@ -72,7 +76,7 @@ end
 exStruct.waves.waveStartInCl = waveStartInCl;
 exStruct.waves.wavePassInCl = wavePassInCl;
 exStruct.waves.edgeDistanceWaveStartClPix = edgeDistanceWaveStartPix;
-exStruct.waves.edgeDistanceWaveStartClPix = edgeDistanceWaveStartPix/exStruct.image.pixelSize;
+exStruct.waves.edgeDistanceWaveStartClMicron = edgeDistanceWaveStartPix/exStruct.image.pixelSize;
 
 
 % save data

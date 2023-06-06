@@ -1,4 +1,4 @@
-function trackCalciumWaves(filepathDF, manualThreshold, thresholdVal, waveMinSize, overBBLimit)
+function trackCalciumWavesV2(filepathDF, thresholdVal, waveMinSize, overBBLimit)
 % Tracks calcium waves and summarises frequency, speed , trajectory, wave
 % size etc. Requires dF/F pixelwise movie to have been created from
 % prepRetinaCalcium
@@ -20,20 +20,22 @@ intializeMIJ;
 %% defaults
 
 % percent of brightest image range to use for thresholding
-if nargin < 3 || isempty(thresholdVal)
+if nargin < 2 || isempty(thresholdVal)
     thresholdVal = 0.95;
 end
 
 % wave object area minimum in pixel^2
-if nargin < 4 || isempty(waveMinSize)
+if nargin < 3 || isempty(waveMinSize)
     waveMinSize = 300;
 end
 
-if nargin < 5 || isempty(overBBLimit)
+if nargin < 4 || isempty(overBBLimit)
     overBBLimit = 0.01 ; % 2 percent limit for bounding box overlap
 end
 minFrameThreshold = 3;
 minAreaPercentChange = 0.25; % 25 percent
+
+segFilePath = 'C:\Data\mouse\calcium\FN1\20230427\waveClass.classifier';
 
 %% load in dF movie
 tifStack = read_Tiffs(filepathDF);
@@ -86,7 +88,7 @@ stackImp = MIJ.createImage('tifs', tifGauSub, 1);
 
 % get frame brightness and the 3/4 brightest frame number
 % frameBrightness = squeeze(mean(tifGauSub,[1 2]));
-%
+% 
 % [frameVal, sortedIndx ]= sort(frameBrightness, 'ascend');
 % frame2Set = round(length(frameBrightness) * thresholdVal);
 
@@ -99,67 +101,11 @@ frameBrightness10Perc = mean(tif2D_10percent,1);
 frame2Set10Per = round(length(frameBrightness10Perc) * thresholdVal);
 
 % MIJ.setSlice(sortedIndx(frame2Set));
+MIJ.run('Segment Image With Labkit', ['segmenter_file=' segFilePath ' use_gpu=false']);
+
+
 stackImp.setSlice(sortedIndx10Per(frame2Set10Per));
-
-% if manually selecting threshold
-if manualThreshold == 1
-    %% adjust brightness contrast
-    MIJ.run("Brightness/Contrast...");
-
-    % Sets up diolg box to allow for user input to choose cell ROIs
-    opts.Default = 'Continue';
-    opts.Interpreter = 'tex';
-
-    questText = [{'Manually adjust brightness/contrast'} ...
-        {'If you are happy to move on with analysis click  \bfContinue\rm'} ...
-        {'Or click  \bfExit Script\rm or X out of this window to exit script'}];
-
-    response = questdlg(questText, ...
-        'Adjust contrast', ...
-        'Continue', ...
-        'Exit Script', ...
-        opts);
-
-    % deals with repsonse
-    switch response
-
-        case 'Continue' % if continue, goes on with analysis
-
-        case 'Exit Script'
-            return
-    end
-
-    %% Sets up diolg box to allow for user to manually threshold
-
-    MIJ.run('Threshold...');
-
-    opts.Default = 'Continue';
-    opts.Interpreter = 'tex';
-
-    questText = [{'Manually choose threshold'} ...
-        {'If you are happy to move on with analysis click  \bfContinue\rm'} ...
-        {'Or click  \bfExit Script\rm or X out of this window to exit script'}];
-
-    response = questdlg(questText, ...
-        'Threshold the stack', ...
-        'Continue', ...
-        'Exit Script', ...
-        opts);
-
-    % deals with repsonse
-    switch response
-
-        case 'Continue' % if continue, goes on with analysis
-
-        case 'Exit Script'
-            return
-    end
-
-else % auto threshold
-    MIJ.run('Threshold...','setAutoThreshold=Mean');
-end
-
-%%
+MIJ.run('Threshold...','setAutoThreshold=Mean');
 MIJ.run("Convert to Mask", "method=Default background=Dark black");
 MIJ.run("Fill Holes", "stack");
 

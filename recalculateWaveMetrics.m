@@ -1,8 +1,7 @@
-function [waveTable,colStack] = recalculateWaveMetrics(app)
+function [waves,colStack] = recalculateWaveMetrics(app)
 
 waveTable = app.exStruct.waves.waveTable;
 exStruct = app.exStruct;
-
 
 %% get the wave metrics
 waveDFAverage = [];
