@@ -18,16 +18,16 @@ function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, creat
 %        and takes up time/space 0 = not saved, 1 = saved (DEFAULT)
 %
 %        zeroDFStack - 0/1 to make and negative DF signal zero for the DF
-%                      movies DEFAULT = 1                           
+%                      movies DEFAULT = 1
 
 %% defaults
 calciumChan = 1;
 
 if nargin < 1 || isempty(filePath)
-   [file, path] = uigetfile({'*.nd2;*.tif;*.tiff;*.czi'},...
-                          'Image File Selector');
+    [file, path] = uigetfile({'*.nd2;*.tif;*.tiff;*.czi'},...
+        'Image File Selector');
 
-   filePath = fullfile(path,file);
+    filePath = fullfile(path,file);
 end
 
 if nargin < 2 || isempty(motionCorrFlag)
@@ -66,6 +66,12 @@ else
     metaData.image.pixelNum = size(imStackCal, 1);
     metaData.image.pixelSize = 0.41;
 end
+
+% take single slice from blood vessel channel
+
+
+%clean up to save space
+clear('imStack');
 
 %% motion correction
 
@@ -108,9 +114,14 @@ if createDFPixelMovieFlag == 1
 end
 %% save meta and SD image
 
-imageSD = std(double(imStackCal),[],3);
+save(fullfile(folderParts, [name '_ExStruct.mat']), 'metaData', '-v7.3');
+
+% clean up a little
+clear metaData
+
+% imageSD = std(double(imStackCal),[],3);
+imageSD = stdGPU(imStackCal);
 imageSD = uint16(mat2gray(imageSD) * 65535);
 saveastiff(imageSD, fullfile(folderParts, [name '_SD.tif']));
 
-save(fullfile(folderParts, [name '_ExStruct.mat']), 'metaData', '-v7.3');
 end

@@ -1,4 +1,4 @@
-function [tifStack,xyShifts, options_nonrigid] = imageRegistration(tifStack,imageRegistrationMethod,spatialResolution,filterCutoff,templateImage)
+function [tifStack,xyShifts, options_nonrigid] = imageRegistration(tifStack,imageRegistrationMethod,spatialResolution,filterCutoff,templateImage, numChunks)
 % [tifStack,xyShifts] = imageRegistration(tifStack,imageRegistrationMethod,spatialResolution,filterCutoff,templateImage)
 % Registers imaging stack to a template image using either a DFT-based subpixel method ('subMicronMethod') or a
 % non rigid NoRMCorr ('nonRigid'). The template image can be directly specified, or the
@@ -12,6 +12,7 @@ if(nargin<2) || isempty(imageRegistrationMethod), imageRegistrationMethod = 'sub
 if(nargin<3) || isempty(spatialResolution), spatialResolution = 1.3650; end % in microns per pixel
 if(nargin<4) || isempty(filterCutoff), filterCutOff  = [20,150];   end % [lowpass cutoff, highpass cutoff] in units of microns
 if(nargin<5), templateImage = [];         end % templateImage is ignored when empty
+if(nargin<6) || isempty(filterCutoff), numChunks = 2; end
 imgsForTemplate     = [1:100];                % how many images to use for the template
 useSpatialFiltering = ~isempty(filterCutOff); % spatially filters the images in an attempt to reduce noise that may impair registration
 t0=tic;
@@ -44,36 +45,85 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
     xyShifts       = zeros(2,numberOfImages);
 
     %% GPU version
-    try % tries for GPU  version, which will only work if nvidia CUDA installed
-        % create GPU arrays
-        xyShiftsGPU       = gpuArray(zeros(2,numberOfImages));
-        templateImgGPU = gpuArray(templateImg);
-        tifStackGPU = gpuArray(tifStack);
+    if gpuDeviceCount == 1 % tries for GPU  version, which will only work if nvidia CUDA installed
+        % chunk up tifStack if larger than GPU allowance (intmax('int32'))
+        t = tic;
+        if numel(tifStack) > intmax('int32')
 
-        disp('Starting to calculate frame shifts using GPU');
+            nblocks = ceil( numel(tifStack)/double(intmax('int32')))+1;
+            xyShifts       = [];
 
-        parfor_progress(numberOfImages);
-        parfor ii = 1:numberOfImages
-            % Get current image to register to the template image and pre-process the current frame.
+            %%
+            chunkNo = round(size(tifStack,3)/nblocks);
+            chunkStart = 1:chunkNo:size(tifStack,3);
 
-            parfor_progress; % get progress in parfor loop
+            chunkEnd = [chunkStart(2:end-1)-1 chunkStart(end)];
+            chunkStart = chunkStart(1:end-1);
+            templateImgGPU = gpuArray(templateImg);
 
-            sourceImgGPU = tifStackGPU(:,:,ii);
-            if(useSpatialFiltering)
-                sourceImgGPU = real(bandpassFermiFilterGPU(sourceImgGPU,-1,filterCutOff(2),spatialResolution));        % Lowpass filtering step
-                sourceImgGPU = imfilter(sourceImgGPU,fspecial('average',round(filterCutOff(1)/spatialResolution))); % Highpass filtering step
+            for cc= 1:nblocks
+
+                % create GPU arrays
+                xyShiftsGPU       = gpuArray(zeros(2,chunkEnd(cc)- chunkStart(cc)+1)); % create appropriate size for this chunk
+                tifStackGPU = gpuArray(tifStack(:,:,chunkStart(cc): chunkEnd(cc)));
+
+                disp(['Starting to calculate frame shifts using GPU  chunk ' num2str(cc) ' of ' num2str(nblocks)]);
+
+                for ii = 1:chunkNo
+                    % Get current image to register to the template image and pre-process the current frame.
+
+                    sourceImgGPU = tifStackGPU(:,:,ii);
+                    if(useSpatialFiltering)
+                        sourceImgGPU = real(bandpassFermiFilterGPU(sourceImgGPU,-1,filterCutOff(2),spatialResolution));        % Lowpass filtering step
+                        sourceImgGPU = imfilter(sourceImgGPU,fspecial('average',round(filterCutOff(1)/spatialResolution))); % Highpass filtering step
+                    end
+
+                    % Determine offsets to shift image
+                    [~,output2]=subMicronInPlaneAlignmentGPU(templateImgGPU,sourceImgGPU);
+                    xyShiftsGPU(:,ii) = output2(3:4);
+
+                    % Shift image
+                    tifStackGPU(:,:,ii) =  shiftImageStackGPU(tifStackGPU(:,:,ii),xyShiftsGPU(:,ii)');
+
+                end
+                xyShifts = [xyShifts gather(xyShiftsGPU)];
+                tifStack(:,:,chunkStart(cc): chunkEnd(cc)) = gather(tifStackGPU);
             end
 
-            % Determine offsets to shift image
-            [~,output2]=subMicronInPlaneAlignmentGPU(templateImgGPU,sourceImgGPU);
-            xyShiftsGPU(:,ii) = output2(3:4);
+        else
+            %% full image on GPU
+            xyShifts       = zeros(2,numberOfImages);
+            templateImgGPU = gpuArray(templateImg);
+            tifStackGPU = gpuArray(tifStack);
+
+            disp('Starting to calculate frame shifts using GPU');
+
+            parfor_progress(numberOfImages);
+            parfor ii = 1:numberOfImages
+                % Get current image to register to the template image and pre-process the current frame.
+
+                parfor_progress; % get progress in parfor loop
+
+                sourceImgGPU = tifStackGPU(:,:,ii);
+                if(useSpatialFiltering)
+                    sourceImgGPU = real(bandpassFermiFilterGPU(sourceImgGPU,-1,filterCutOff(2),spatialResolution));        % Lowpass filtering step
+                    sourceImgGPU = imfilter(sourceImgGPU,fspecial('average',round(filterCutOff(1)/spatialResolution))); % Highpass filtering step
+                end
+
+                % Determine offsets to shift image
+                [tifStackGPU(:,:,ii),output2]=subMicronInPlaneAlignmentGPU(templateImgGPU,sourceImgGPU);
+                xyShiftsGPU(:,ii) = output2(3:4);
+            end
+
+            xyShifts = gather(xyShiftsGPU);
+            tifStack = gather(tifStackGPU);
+
         end
-
-        xyShifts = gather(xyShiftsGPU);
         %% CPU version
-    catch % tries for CPU version if GPU CUDA not available
-
+    else % tries for CPU version if GPU CUDA not available
+        t = tic;
         disp('Starting to calculate frame shifts using CPU');
+        xyShifts       = zeros(2,numberOfImages);
 
         parfor_progress(numberOfImages)
         parfor ii = 1:numberOfImages
@@ -91,11 +141,13 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
             [~,output2]=subMicronInPlaneAlignment(templateImg,sourceImg);
             xyShifts(:,ii) = output2(3:4);
         end
+
+         tifStack = shiftImageStack(tifStack,xyShifts([2 1],:)'); % Apply actual shifts to tif stack
     end
 end
 
-tifStack = shiftImageStack(tifStack,xyShifts([2 1],:)'); % Apply actual shifts to tif stack
-
+toc(t);
+% tifStack = shiftImageStack(tifStack,xyShifts([2 1],:)'); % Apply actual shifts to tif stack
 
 timeElapsed = toc(t0);
 sprintf('Finished registering imaging data - Time elapsed is %4.2f seconds',timeElapsed);

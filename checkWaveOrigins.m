@@ -10,7 +10,10 @@ waves = exStruct.waves;
 waveStartInCl = false(size(waves.waveArea))';
 wavePassInCl = false(size(waves.waveArea))';
 edgeDistanceWaveStartPix = nan(size(waves.waveArea))';
-edgeDistanceWaveStartPix = nan(size(waves.waveArea))';
+
+waveStartInPlexus = false(size(waves.waveArea))';
+wavePassInPlexus = false(size(waves.waveArea))';
+edgeDistanceWaveStartPlexusPix = nan(size(waves.waveArea))';
 
 
 for i = 1:length(waves.waveArea)
@@ -20,6 +23,8 @@ for i = 1:length(waves.waveArea)
     [~, minFrameInd] = min(waveObjects.Frame);
 
     minObjectHull = waveObjects.ConvexHull(minFrameInd);
+
+    %% for cluster areas
 
     for cl = 1:height(exStruct.clusterCells.clusterPropsDS)
         % check if the wave starts in the cluster
@@ -70,6 +75,54 @@ for i = 1:length(waves.waveArea)
             end
         end
     end
+
+%% run through waves for vascular plexus
+     for bv = 1:height(exStruct.bloodVesselPlexus.bloodVesselPropsDS)
+        bvHull = exStruct.bloodVesselPlexus.bloodVesselPropsDS.ConvexHull{bv};
+         for ob = 1:length(minObjectHull)
+              in = polyxpoly(minObjectHull{ob}(:,1), minObjectHull{ob}(:,2),bvHull(:,1), bvHull(:,2));
+
+              % if no intersects, check whether the wave origin is fully in
+              % the plexus
+              if isempty(in)
+                   in= sum(inpolygon(minObjectHull{ob}(:,1), minObjectHull{ob}(:,2),bvHull(:,1), bvHull(:,2)));
+              end
+
+            minObjectPoly.x = minObjectHull{ob}(:,1);
+            minObjectPoly.y = minObjectHull{ob}(:,2);
+
+            bvHullP.x = bvHull(:,1);
+            bvHullP.y =  bvHull(:,2);
+            edgeDistanceWaveStartPlexusPix(i,cl) = min_dist_between_two_polygons(minObjectPoly, bvHullP);
+
+            % plots the wave objects and cluster locations
+
+%             mask = exStruct.bloodVesselPlexus.maskDS;
+%             mask(waveObjects.PixelIdxList{minFrameInd}) = 1;
+%             imshow(mask);
+%             hold on
+%             mapshow(minObjectHull{ob}(:,1), minObjectHull{ob}(:,2), 'Marker','+');
+%             mapshow(bvHull(:,1), bvHull(:,2), 'Marker','+', 'Color','r');
+%             title(['Cluster No: ' num2str(cl) ' Wave No: ' num2str(i) ' Frame No: ' num2str(waveObjects.Frame(minFrameInd)) 'Intersect flag =' num2str(in)]);
+%             xlim([0 512]);
+%             ylim([0 512]);
+%             close(gcf)
+
+
+             if in > 0
+                waveStartInPlexus(i) = true;
+             end
+
+             % check if any wave object passes through plexus
+            for waveOb = 1:height(waveObjects)
+                in = polyxpoly(waveObjects.ConvexHull{waveOb}(:,1), waveObjects.ConvexHull{waveOb}(:,2),bvHull(:,1), bvHull(:,2));
+
+                if ~isempty(in)
+                    wavePassInPlexus(i) = true;
+                end
+            end
+         end
+     end
 end
 
 %% save stuff into exStruct
@@ -78,6 +131,10 @@ exStruct.waves.wavePassInCl = wavePassInCl;
 exStruct.waves.edgeDistanceWaveStartClPix = edgeDistanceWaveStartPix;
 exStruct.waves.edgeDistanceWaveStartClMicron = edgeDistanceWaveStartPix/exStruct.image.pixelSize;
 
+exStruct.waves.waveStartInPlexus = waveStartInPlexus;
+exStruct.waves.wavePassInPlexus = wavePassInPlexus;
+exStruct.waves.edgeDistanceWaveStartPlexusPix = edgeDistanceWaveStartPlexusPix;
+exStruct.waves.edgeDistanceWaveStartPlexusMicron = edgeDistanceWaveStartPlexusPix/exStruct.image.pixelSize;
 
 % save data
 save(exStructPath, "exStruct", '-v7.3');

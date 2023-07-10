@@ -48,7 +48,7 @@ if(shiftInDiscreteValues)
     
     % make rows and cols zero where we shifted
     if(row_shift>0), registeredImage(1:row_shift,:,:) = 0; elseif(row_shift<0), registeredImage((end+row_shift+1):end,:,:) = 0; end
-    if(col_shift>0), registeredImage(:,1:row_shift,:) = 0; elseif(col_shift<0), registeredImage(:,(end+row_shift+1):end,:) = 0; end         
+    if(col_shift>0), registeredImage(:,1:col_shift,:) = 0; elseif(col_shift<0), registeredImage(:,(end+col_shift+1):end,:) = 0; end         
 else
     for(currentChannel = 1:size(sourceImage,3))
         fftedSrcImg = fft2(padImage(sourceImage(:,:,currentChannel)));

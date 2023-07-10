@@ -37,19 +37,46 @@ imStackLinear = reshape(imStackResize, [], size(imStackResize,3));
 %% get the baseline traces
 framePeriod = metaData.framePeriod;
 
-parfor_progress(length(imStackLinear));
-parfor i = 1:length(imStackLinear)
+if gpuDeviceCount == 1
+    %% run computation on GPU
+    imStackLinearGPU = gpuArray(imStackLinear);
+    parfor_progress(length(imStackLinear));
+    parfor i = 1:length(imStackLinear)
 
-    %% fit exp curve to remove bleaching
-    y = double(imStackLinear(i,:));
-    x = 1:length(y);
-    [~, yBaselined(i,:)] = fitexpCurve(x, y);
+        %% fit exp curve to remove bleaching on GPU
+        y = double(imStackLinearGPU(i,:));
+        x = 1:length(y);
+        [~, yBaselined(i,:)] = fitExpCurveGPU(x, y);
 
-    %% baseline subtraction
-    highpassFilteredTrace(i,:) = baselinePercentileFilter(yBaselined(i,:)', 1/framePeriod ,30);
-    parfor_progress;
+        %% baseline subtraction
+        highpassFilteredTrace(i,:) = baselinePercentileFilter2(yBaselined(i,:)', 1/framePeriod ,30);
+
+        %         prcdone(i,length(imStackLinear),'Baseline on GPU',10 ,tStart);
+        parfor_progress;
+    end
+    parfor_progress(0);
+
+    highpassFilteredTrace = gather(highpassFilteredTrace);
+    yBaselined = gather(yBaselined);
+else
+    % run computation on CPU
+    parfor_progress(length(imStackLinear));
+    parfor i = 1:length(imStackLinear)
+        % fit exp curve to remove bleaching
+        y = double(imStackLinear(i,:));
+        x = 1:length(y);
+        [~, yBaselined(i,:)] = fitexpCurve(x, y);
+
+        %% baseline subtraction
+        highpassFilteredTrace(i,:) = baselinePercentileFilter(yBaselined(i,:)', 1/framePeriod ,30);
+        parfor_progress;
+    end
+    parfor_progress(0);
 end
-parfor_progress(0);
+
+% close parpool to save space on RAM...
+poolobj = gcp('nocreate');
+delete(poolobj);
 
 % create dF/F traces per pixel
 dF = (yBaselined-highpassFilteredTrace)./highpassFilteredTrace;

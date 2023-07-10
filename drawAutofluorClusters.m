@@ -77,7 +77,7 @@ if stackDim(3) > 1
 end
 ij.IJ.runMacro('setTool("polygon");');
 
-%% choose ROI shapes
+%% choose ROI shapes for cluster cells
 
 % Sets up diolg box to allow for user input to choose cell ROIs
 opts.Default = 'Continue';
@@ -124,12 +124,72 @@ rz = 512/pixelIm;
 clusterCellMaskDownsize = imresize(clusterCellMask,rz, 'nearest');
 shapePropsDownsize = regionprops("table", clusterCellMaskDownsize,"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList", "ConvexHull");
 
+%% choose ROI shapes for blood vessel plexus
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+RC.reset();
+% Sets up diolg box to allow for user input to choose cell ROIs
+opts.Default = 'Continue';
+opts.Interpreter = 'tex';
+
+questText = [{'Draw ROI around the blood vessel plexus'} ...
+    {'Add ROI to ROI Manager by Ctrl + T'} {''} ...
+    {'If you are happy to move on with analysis click  \bfContinue\rm'} ...
+    {'Or click  \bfExit Script\rm or X out of this window to exit script'}];
+
+response = questdlg(questText, ...
+    'Check and choose ROIs', ...
+    'Continue', ...
+    'Exit Script', ...
+    opts);
+
+
+% deals with repsonse
+switch response
+
+    case 'Continue' % if continue, goes on with analysis
+        ROInumber = RC.getCount();
+        disp(['You have selected ' num2str(ROInumber) ' ROIs, moving on...']);
+
+    case 'Exit Script' % if you want to exit and end
+        killFlag = 1;
+        return
+    case ''
+        killFlag = 1; % if you want to exit and end
+        return
+end
+
+%% create ROI image
+ROIobjects = RC.getRoisAsArray;
+
+pixelIm = stackImp.getWidth;
+
+% full size image
+bloodVesselMask = createLabeledROIFromImageJPixels([pixelIm pixelIm] ,ROIobjects);
+shapePropsBloodVessel = regionprops("table", bloodVesselMask,"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList", "ConvexHull");
+
+% downsampled image
+rz = 512/pixelIm;
+bloodVesselMaskDownsize = imresize(bloodVesselMask,rz, 'nearest');
+shapePropsBloodVesselDownsize = regionprops("table", bloodVesselMaskDownsize,"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList", "ConvexHull");
+
+
+
+
+
 %% save into exStruct
 exStruct.clusterCells.mask = clusterCellMask;
 exStruct.clusterCells.clusterProps = shapeProps;
 
 exStruct.clusterCells.maskDS = clusterCellMaskDownsize;
 exStruct.clusterCells.clusterPropsDS = shapePropsDownsize;
+
+exStruct.bloodVesselPlexus.mask = bloodVesselMask;
+exStruct.bloodVesselPlexus.bloodVesselProps = shapePropsBloodVessel;
+
+exStruct.bloodVesselPlexus.maskDS = bloodVesselMaskDownsize;
+exStruct.bloodVesselPlexus.bloodVesselPropsDS = shapePropsBloodVesselDownsize;
+
 
 % save data
 save(exStructPath, "exStruct", '-v7.3');
