@@ -2,6 +2,7 @@ function [waves,colStack] = recalculateWaveMetrics(app)
 
 waveTable = app.exStruct.waves.waveTable;
 exStruct = app.exStruct;
+waves = app.exStruct.waves;
 
 %% get the wave metrics
 waveDFAverage = [];
@@ -100,8 +101,8 @@ for fr = frames'
 
     % for all objects in frame, colorize pixels
     for BB = 1:height(currentFrame)
-        currentFrameX = currentFrame.SubarrayIdx{BB,1} ;
-        currentFrameY = currentFrame.SubarrayIdx{BB,2} ;
+%         currentFrameX = currentFrame.SubarrayIdx{BB,1} ;
+%         currentFrameY = currentFrame.SubarrayIdx{BB,2} ;
 
         currentFramePix = currentFrame.PixelIdxList{BB};
 
@@ -119,56 +120,56 @@ for fr = frames'
 end
 
 % save RGB timeseries stack
-options.color = 1;
-colStack = im2uint8(colStack);
-saveastiff(permute(colStack, [1 2 4 3]), fullfile([exStruct.filePath(1:end-4) '_waveCol.tif']), options);
+% options.color = 1;
+% colStack = im2uint8(colStack);
+% saveastiff(permute(colStack, [1 2 4 3]), fullfile([exStruct.filePath(1:end-4) '_waveCol.tif']), options);
 
 %% create wave extent images
 
-% get image to color over
-SDImage = std(double(app.disStack.dFTifStack),[],3);
-SDImage = imadjust(rescale(SDImage));
-
-% color over each wave extent
-for w = 1:max(waveTable.waveNumber)
-
-    % get all objects for a single waves
-    subTabIndx = waveTable.waveNumber == w;
-    subTable = waveTable(subTabIndx,:);
-
-    % get all the pixels involved in wave
-    wavePixels = unique(cat(1,subTable.PixelIdxList{:}));
-    [wavePixX, wavePixY] = ind2sub(size(SDImage), wavePixels);
-
-    % get wave extent in pixels
-    waves.waveArea(w) = length(wavePixels);
-    waves.waveAreaMicron(w) = length(wavePixels) * exStruct.downsampledRes;
-
-
-    SDImageRGB = repmat(SDImage, 1, 1, 3);
-
-    % colorize each pixel
-    for pix = 1:length(wavePixX)
-        SDImageRGB(wavePixX(pix), wavePixY(pix) ,:) = squeeze(SDImageRGB( wavePixX(pix), wavePixY(pix),:))' .* waveCols(w,:);
-    end
-
-    % save the things
-    wavePicDir = [exStruct.filePath(1:end-4) '_waveMaps'];
-
-    if ~exist(wavePicDir)
-        mkdir(wavePicDir);
-    else
-        if w == 1
-            rmdir(wavePicDir, 's');
-            mkdir(wavePicDir);
-        end
-    end
-
-    [~, fileName] = fileparts(exStruct.filePath);
-
-    imwrite(SDImageRGB, fullfile(wavePicDir, sprintf('%s_wave_%03d.tif', fileName, w)));
-end
-
+% % get image to color over
+% SDImage = std(double(app.disStack.dFTifStack),[],3);
+% SDImage = imadjust(rescale(SDImage));
+% 
+% % color over each wave extent
+% for w = 1:max(waveTable.waveNumber)
+% 
+%     % get all objects for a single waves
+%     subTabIndx = waveTable.waveNumber == w;
+%     subTable = waveTable(subTabIndx,:);
+% 
+%     % get all the pixels involved in wave
+%     wavePixels = unique(cat(1,subTable.PixelIdxList{:}));
+%     [wavePixX, wavePixY] = ind2sub(size(SDImage), wavePixels);
+% 
+%     % get wave extent in pixels
+%     waves.waveArea(w) = length(wavePixels);
+%     waves.waveAreaMicron(w) = length(wavePixels) * exStruct.downsampledRes;
+% 
+% 
+%     SDImageRGB = repmat(SDImage, 1, 1, 3);
+% 
+%     % colorize each pixel
+%     for pix = 1:length(wavePixX)
+%         SDImageRGB(wavePixX(pix), wavePixY(pix) ,:) = squeeze(SDImageRGB( wavePixX(pix), wavePixY(pix),:))' .* waveCols(w,:);
+%     end
+% 
+%     % save the things
+%     wavePicDir = [exStruct.filePath(1:end-4) '_waveMaps'];
+% 
+%     if ~exist(wavePicDir)
+%         mkdir(wavePicDir);
+%     else
+%         if w == 1
+%             rmdir(wavePicDir, 's');
+%             mkdir(wavePicDir);
+%         end
+%     end
+% 
+%     [~, fileName] = fileparts(exStruct.filePath);
+% 
+%     imwrite(SDImageRGB, fullfile(wavePicDir, sprintf('%s_wave_%03d.tif', fileName, w)));
+% end
+% 
 
 %% add into waves
 waves.waveTable = waveTable;

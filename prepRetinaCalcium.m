@@ -22,6 +22,7 @@ function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, creat
 
 %% defaults
 calciumChan = 1;
+bvChan = 2;
 
 if nargin < 1 || isempty(filePath)
     [file, path] = uigetfile({'*.nd2;*.tif;*.tiff;*.czi'},...
@@ -47,7 +48,7 @@ if nargin < 5 || isempty(zeroDFStack)
     zeroDFStack = 1;
 end
 
-noOfImagesForAlignment = 50; % number of brightest images used for motion correction template image
+noOfImagesForAlignment = 100; % number of brightest images used for motion correction template image
 
 %% get save folder locations
 [folderParts, name, ext ] = fileparts(filePath);
@@ -68,10 +69,18 @@ else
 end
 
 % take single slice from blood vessel channel
-
+imStackBV = squeeze(imStack(:,:,bvChan,:));
 
 %clean up to save space
 clear('imStack');
+
+ImBV = stdGPU(imStackBV,3);
+imageIMSD = uint16(mat2gray(ImBV) * 65535);
+saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
+
+
+%clean up to save space
+clear('imStackBV');
 
 %% motion correction
 

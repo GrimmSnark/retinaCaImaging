@@ -13,6 +13,9 @@ function [fittedY, yBaselined, coefficients] =fitExpCurveGPU(xData, yData)
 
 logY = log(yData);
 
+% remove any inf values
+logY(logY == -inf) = 0;
+
 % Fit a linear polynomial to the transformed data
 coefficients = polyfit(xData, logY, 1);
 

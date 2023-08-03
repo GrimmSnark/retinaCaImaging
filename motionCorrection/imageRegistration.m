@@ -46,6 +46,7 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
 
     %% GPU version
     if gpuDeviceCount == 1 % tries for GPU  version, which will only work if nvidia CUDA installed
+        %     if gpuDeviceCount == 2 % tries for GPU  version, which will only work if nvidia CUDA installed
         % chunk up tifStack if larger than GPU allowance (intmax('int32'))
         t = tic;
         if numel(tifStack) > intmax('int32')
@@ -82,12 +83,9 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
                     [~,output2]=subMicronInPlaneAlignmentGPU(templateImgGPU,sourceImgGPU);
                     xyShiftsGPU(:,ii) = output2(3:4);
 
-                    % Shift image
-                    tifStackGPU(:,:,ii) =  shiftImageStackGPU(tifStackGPU(:,:,ii),xyShiftsGPU(:,ii)');
-
                 end
                 xyShifts = [xyShifts gather(xyShiftsGPU)];
-                tifStack(:,:,chunkStart(cc): chunkEnd(cc)) = gather(tifStackGPU);
+                tifStack(:,:,chunkStart(cc): chunkEnd(cc)) = shiftImageStack(gather(tifStackGPU),gather(xyShiftsGPU([2 1],:)')); % Apply actual shifts to tif stack
             end
 
         else
@@ -111,12 +109,12 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
                 end
 
                 % Determine offsets to shift image
-                [tifStackGPU(:,:,ii),output2]=subMicronInPlaneAlignmentGPU(templateImgGPU,sourceImgGPU);
+                [~,output2]=subMicronInPlaneAlignmentGPU(templateImgGPU,sourceImgGPU);
                 xyShiftsGPU(:,ii) = output2(3:4);
             end
 
+            tifStack = shiftImageStack(gather(tifStackGPU),gather(xyShiftsGPU([2 1],:)'));
             xyShifts = gather(xyShiftsGPU);
-            tifStack = gather(tifStackGPU);
 
         end
         %% CPU version
@@ -142,12 +140,11 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
             xyShifts(:,ii) = output2(3:4);
         end
 
-         tifStack = shiftImageStack(tifStack,xyShifts([2 1],:)'); % Apply actual shifts to tif stack
+        tifStack = shiftImageStack(tifStack,xyShifts([2 1],:)'); % Apply actual shifts to tif stack
     end
 end
 
 toc(t);
-% tifStack = shiftImageStack(tifStack,xyShifts([2 1],:)'); % Apply actual shifts to tif stack
 
 timeElapsed = toc(t0);
 sprintf('Finished registering imaging data - Time elapsed is %4.2f seconds',timeElapsed);

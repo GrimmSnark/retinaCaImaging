@@ -38,10 +38,13 @@ imStackLinear = reshape(imStackResize, [], size(imStackResize,3));
 framePeriod = metaData.framePeriod;
 
 if gpuDeviceCount == 1
+
     %% run computation on GPU
     imStackLinearGPU = gpuArray(imStackLinear);
     parfor_progress(length(imStackLinear));
     parfor i = 1:length(imStackLinear)
+        %     for i = 1:length(imStackLinear)
+
 
         %% fit exp curve to remove bleaching on GPU
         y = double(imStackLinearGPU(i,:));

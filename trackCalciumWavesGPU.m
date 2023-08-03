@@ -1,4 +1,4 @@
-function trackCalciumWaves(filepathDF, manualThreshold, thresholdVal, waveMinSize, overBBLimit)
+function trackCalciumWavesGPU(filepathDF, manualThreshold, thresholdVal, waveMinSize, overBBLimit)
 % Tracks calcium waves and summarises frequency, speed , trajectory, wave
 % size etc. Requires dF/F pixelwise movie to have been created from
 % prepRetinaCalcium
@@ -131,6 +131,38 @@ if manualThreshold == 1
             return
     end
 
+
+    %% choose tissue coverage ROI, ie the area of the image which has useful tissue in it
+
+
+     % Sets up diolg box to allow for user input to choose cell ROIs
+    opts.Default = 'Continue';
+    opts.Interpreter = 'tex';
+
+    ij.IJ.setTool(2);
+
+    questText = [{'Choose tissue ROI'} ...
+        {'Select the polygon tool click "t" add to ROI manager'} {''} ...
+    {'If you are happy to move on with analysis click  \bfContinue\rm'} ...
+    {'Or click  \bfExit Script\rm or X out of this window to exit script'}];
+
+    response = questdlg(questText, ...
+        'Happy with selection', ...
+        'Continue', ...
+        'Exit Script', ...
+        opts);
+
+    % deals with repsonse
+    switch response
+
+        case 'Continue' % if continue, goes on with analysis
+
+        case 'Exit Script'
+            return
+    end
+
+
+
     %% Sets up diolg box to allow for user to manually threshold
 
     MIJ.run('Threshold...');
@@ -164,9 +196,20 @@ end
 %%
 MIJ.run("Convert to Mask", "method=Default background=Dark black");
 MIJ.run("Fill Holes", "stack");
+
+%% set everything outside tissue area to black
+RM = ij.plugin.frame.RoiManager();
+RC = RM.getInstance();
+
+RC.select(0);
+% MIJ.run("Make Inverse");
+% ij.IJ.setForegroundColor(0,0,0);
+% MIJ.run("Fill", "stack");
+% 
+% 
 MIJ.run("Analyze Particles...", ['size=' num2str(waveMinSize) '-Infinity show=Masks clear stack']);
 
-tifTreshFilled = im2uint8(rescale(MIJ.getImage('Mask of Result of tifs')));
+tifTreshFilled = gpuArray(im2uint8(rescale(MIJ.getImage('Mask of Result of tifs'))));
 disp('On window cleanup');
 
 % Clean up windows
@@ -174,15 +217,23 @@ stackImp.changes = false;
 stackImp.draw
 stackImp.close
 
-threshBinary = imbinarize(tifTreshFilled);
+% threshBinary = imbinarize(tifTreshFilled);
+threshBinary = logical(tifTreshFilled);
 disp('Thresholding done...');
 
 %%
 waveTable = [];
 % opticFlow =opticalFlowHS;
 for fr = 1:size(threshBinary,3)
-    shapeProps = regionprops("table", threshBinary(:,:,fr),"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList","ConvexHull");
-    shapeProps = sortrows(shapeProps,"Area", "descend");
+%     shapeProps = regionprops("table", threshBinary(:,:,fr),"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList","ConvexHull");
+    shapeProps = regionprops(threshBinary(:,:,fr),"Area", "BoundingBox","Centroid","PixelIdxList");
+
+    % error catch if there is only one shape/entry in the frame
+    try
+    shapeProps = sortrows(struct2table(shapeProps),"Area", "descend");
+    catch
+     shapeProps = sortrows(struct2table(shapeProps, "AsArray",true),"Area", "descend");
+    end
 
     % limit to objects larger than min
     rows = shapeProps.Area > waveMinSize;
@@ -317,6 +368,17 @@ waveTable.waveNumber = zeros(height(waveTable),1);
 currentWave = 0;
 
 tstart = tic;
+
+% port the overlap index into an array for faster searching
+l = max(cellfun(@(x) length(x), waveTable.OverlapBBindx)); % length
+tempArrOverlap = zeros(height(waveTable.OverlapBBindx),l); % create array
+
+% build
+for gg = 1:height(waveTable)
+    tempEl = waveTable.OverlapBBindx{gg};
+    tempArrOverlap(gg,1:length(tempEl)) = tempEl;
+end
+
 % forward pass
 for ob = 1:height(waveTable)
     prcdone(ob,height(waveTable),'Overlaps check' ,[],tstart)
@@ -326,6 +388,9 @@ for ob = 1:height(waveTable)
         currentWave = currentWave +1;
         waveTable.waveNumber(ob) = currentWave;
     else
+        % build for each loop
+        matchingObjects = false(height(waveTable.OverlapBBindx),1);
+
         % get the minimum wave number
         minWaveNo = min(waveTable.waveNumber(waveTable.OverlapBBindx{ob}));
 
@@ -334,8 +399,13 @@ for ob = 1:height(waveTable)
         waveTable.waveNumber(ob) = minWaveNo;
 
         % get all previously matching objects
-        matchingObjects = cellfun(@(x) ismember(x,waveTable.OverlapBBindx{ob}), waveTable.OverlapBBindx , 'UniformOutput',false);
-        matchingObjects = cellfun(@(x) any(x),matchingObjects);
+        %         matchingObjects = cellfun(@(x) ismember(x,waveTable.OverlapBBindx{ob}), waveTable.OverlapBBindx , 'UniformOutput',false);
+        %         matchingObjects = cellfun(@(x) any(x),matchingObjects);
+
+        for jj = 1:length(waveTable.OverlapBBindx{ob})
+            [r, ~] = find(tempArrOverlap == waveTable.OverlapBBindx{ob}(jj));
+            matchingObjects(r) = 1;
+        end
 
         % get wave number which is non zero
         waveNo = waveTable.waveNumber(matchingObjects);
@@ -501,8 +571,8 @@ for fr = frames'
 
     % for all objects in frame, colorize pixels
     for BB = 1:height(currentFrame)
-        currentFrameX = currentFrame.SubarrayIdx{BB,1} ;
-        currentFrameY = currentFrame.SubarrayIdx{BB,2} ;
+%         currentFrameX = currentFrame.SubarrayIdx{BB,1} ;
+%         currentFrameY = currentFrame.SubarrayIdx{BB,2} ;
 
         currentFramePix = currentFrame.PixelIdxList{BB};
 
@@ -521,6 +591,7 @@ end
 
 % save RGB timeseries stack
 options.color = 1;
+tifGauSubRGB = gather(tifGauSubRGB);
 saveastiff(permute(tifGauSubRGB, [1 2 4 3]), fullfile(folderPath, [name(1:end-5) '_waveCol.tif']), options);
 
 %% create wave extent images
@@ -537,7 +608,7 @@ for w = 1:max(waveTable.waveNumber)
     subTable = waveTable(subTabIndx,:);
 
     % get all the pixels involved in wave
-    wavePixels = unique(cat(1,subTable.PixelIdxList{:}));
+    wavePixels = gather(unique(cat(1,subTable.PixelIdxList{:})));
     [wavePixX, wavePixY] = ind2sub(size(SDImage), wavePixels);
 
     % get wave extent in pixels

@@ -173,10 +173,6 @@ rz = 512/pixelIm;
 bloodVesselMaskDownsize = imresize(bloodVesselMask,rz, 'nearest');
 shapePropsBloodVesselDownsize = regionprops("table", bloodVesselMaskDownsize,"Area", "BoundingBox","Centroid", "SubarrayIdx","PixelIdxList", "ConvexHull");
 
-
-
-
-
 %% save into exStruct
 exStruct.clusterCells.mask = clusterCellMask;
 exStruct.clusterCells.clusterProps = shapeProps;
