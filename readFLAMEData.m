@@ -11,10 +11,15 @@ function [imStack, metaData] = readFLAMEData(filePath)
 imageStruct = bfopen2(filePath);
 
 %% get the meta data
-omeMeta = imageStruct{1, 4};
-metaData = getFLAMEMetaData(omeMeta);
-metaData.filePath = filePath;
-
+try
+    omeMeta = imageStruct{1, 4};
+    metaData = getFLAMEMetaData(omeMeta);
+catch
+    clear javaclasspath
+    [metaData] = bfinfo(filePath);
+    metaData = metaData{1};
+    metaData.filePath = filePath;
+end
 %% get the images
 imStack = imageStruct{1,1}(:,1);
 
