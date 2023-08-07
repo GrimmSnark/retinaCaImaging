@@ -87,9 +87,14 @@ for iCell=1:nCells
     corrFactor(iCell,:) = robustfit(fitNeuro(iCell,:),lowCell(iCell,:));
     %fit between discretized Neuropil and lowest percentile of signal in
     %the cell ROI
-    
-    signalTrace(iCell,:)=cellRoiTrace(iCell,:)-corrFactor(iCell,2)*neuropRoiTrace(iCell,:);
-    
+
+    if corrFactor(iCell,2) < 1
+        signalTrace(iCell,:)=cellRoiTrace(iCell,:)-corrFactor(iCell,2)*neuropRoiTrace(iCell,:);
+    else
+        corrFactor(iCell,2) = 0.7;
+        signalTrace(iCell,:)=cellRoiTrace(iCell,:)-corrFactor(iCell,2)*neuropRoiTrace(iCell,:);
+    end
+
 end
 fprintf('\n')
 

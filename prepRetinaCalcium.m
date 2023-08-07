@@ -59,6 +59,20 @@ if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
     % split into channels
     imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
     imStackCal = squeeze(imStack(:,:,calciumChan,:));
+
+    % take single slice from blood vessel channel
+    imStackBV = squeeze(imStack(:,:,bvChan,:));
+
+    %clean up to save space
+    clear('imStack');
+
+    ImBV = stdGPU(imStackBV,3);
+    imageIMSD = uint16(mat2gray(ImBV) * 65535);
+    saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
+
+    %clean up to save space
+    clear('imStackBV');
+
 else
     imStackCal = read_Tiffs(filePath);
     metaData = [];
@@ -68,19 +82,6 @@ else
     metaData.image.pixelSize = 0.41;
 end
 
-% take single slice from blood vessel channel
-imStackBV = squeeze(imStack(:,:,bvChan,:));
-
-%clean up to save space
-clear('imStack');
-
-ImBV = stdGPU(imStackBV,3);
-imageIMSD = uint16(mat2gray(ImBV) * 65535);
-saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
-
-
-%clean up to save space
-clear('imStackBV');
 
 %% motion correction
 

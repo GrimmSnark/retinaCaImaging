@@ -147,10 +147,15 @@ switch response
         return
 end
 
-% Clean up windows
-MIJ.run('Close');
-MIJ.closeAllWindows;
+%% clean up
+nImages = ij.WindowManager.getImageCount;
+for i = 1: nImages
+    stackImpWaves = ij.IJ.getImage();
+    stackImpWaves.changes = false;
+    stackImpWaves.close;
+end
 
+RC.close;
 %% update and save exStruct
 
 exStruct.cells.cellCount = ROInumber;

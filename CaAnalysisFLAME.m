@@ -46,6 +46,7 @@ exStruct = exStruct.exStruct;
 
 %% get filepath root
 filePathRoot = exStructPath(1:end-13);
+exStruct.filePath = [filePathRoot '.tif'];
 
 %% start analysis
 
@@ -90,7 +91,14 @@ exStruct = CaExtractionFLAME(exStruct, baselineSubType);
 % save data
 save(exStructPath, "exStruct", '-v7.3');
 
-% Clean up windows
-MIJ.closeAllWindows;
+%% clean up
+nImages = ij.WindowManager.getImageCount;
+for i = 1: nImages
+    stackImpWaves = ij.IJ.getImage();
+    stackImpWaves.changes = false;
+    stackImpWaves.close;
+end
+
+RC.close
 
 end
