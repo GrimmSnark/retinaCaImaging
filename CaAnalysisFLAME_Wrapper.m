@@ -13,7 +13,7 @@ if nargin < 3 || isempty(baselineSubType)
     baselineSubType = 2;
 end
 
-files = dir([exStructPath '*.mat']);
+files = dir([exStructPath '\*.mat']);
 
 for i = fileStartNo:length(files)
     disp(['On file no. ' num2str(i) ' of ' num2str(length(files))])
