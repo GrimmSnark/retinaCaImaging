@@ -1,10 +1,8 @@
 function CaAnalysisFLAME_Wrapper(exStructPath, baselineSubType)
 
 if nargin < 1 || isempty(exStructPath)
-    [file, path] = uigetfile({'*.nd2;*.tif;*.tiff;*.czi'},...
+    exStructPath= uigetdir([],...
         'Image File Selector');
-
-    exStructPath = fullfile(path,file);
 end
 
 if nargin < 2 || isempty(baselineSubType)
