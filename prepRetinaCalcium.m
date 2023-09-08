@@ -1,4 +1,4 @@
-function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, createDFPixelMovieFlag, zeroDFStack)
+function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, createDFPixelMovieFlag, zeroDFStack, channelOrg)
 % This function does basic preprocessing of t series imaging data including
 % meta data, image registration,  creates dF_F pixelwise movie and summary
 % SD images from .nd2 files from FLAME system
@@ -19,10 +19,14 @@ function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, creat
 %
 %        zeroDFStack - 0/1 to make and negative DF signal zero for the DF
 %                      movies DEFAULT = 1
+%
+%        channelOrg - two element vector showing organisation of calcium 
+%                     then blood vessel channels, first element is the
+%                     calcium channel no, the second is the blood vessel
+%                     channel DEFAULT [1 2]
+%                     
 
 %% defaults
-calciumChan = 1;
-bvChan = 2;
 
 if nargin < 1 || isempty(filePath)
     [file, path] = uigetfile({'*.nd2;*.tif;*.tiff;*.czi'},...
@@ -46,6 +50,15 @@ end
 
 if nargin < 5 || isempty(zeroDFStack)
     zeroDFStack = 1;
+end
+
+if nargin <6 || isempty(channelOrg)
+
+    calciumChan = 1;
+    bvChan = 2;
+else
+    calciumChan = channelOrg(1);
+    bvChan = channelOrg(2);
 end
 
 noOfImagesForAlignment = 100; % number of brightest images used for motion correction template image
@@ -129,8 +142,12 @@ save(fullfile(folderParts, [name '_ExStruct.mat']), 'metaData', '-v7.3');
 % clean up a little
 clear metaData
 
-% imageSD = std(double(imStackCal),[],3);
-imageSD = stdGPU(imStackCal);
+if gpuDeviceCount == 1 % tries for GPU  version, which will only work if nvidia CUDA installed
+    imageSD = stdGPU(imStackCal);
+else
+    imageSD = std(double(imStackCal),[],3);
+end
+
 imageSD = uint16(mat2gray(imageSD) * 65535);
 saveastiff(imageSD, fullfile(folderParts, [name '_SD.tif']));
 

@@ -55,11 +55,17 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
             xyShifts       = [];
 
             %%
-            chunkNo = round(size(tifStack,3)/nblocks);
-            chunkStart = 1:chunkNo:size(tifStack,3);
 
-            chunkEnd = [chunkStart(2:end-1)-1 chunkStart(end)];
-            chunkStart = chunkStart(1:end-1);
+            % get the right chunk numbers
+            chunkNo = round(size(tifStack,3)/nblocks);
+
+            % error corrects
+            chunkStart = 1:chunkNo:size(tifStack,3);
+            chunkEnd = chunkStart + chunkNo-1;
+            chunkEnd(chunkEnd >= size(tifStack,3)) = [];
+            chunkEnd(end+1) = size(tifStack,3);
+
+            chunkStart(chunkStart >= size(tifStack,3)) = [];
             templateImgGPU = gpuArray(templateImg);
 
             for cc= 1:nblocks
@@ -70,7 +76,7 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
 
                 disp(['Starting to calculate frame shifts using GPU  chunk ' num2str(cc) ' of ' num2str(nblocks)]);
 
-                for ii = 1:chunkNo
+                for ii = 1:size(tifStackGPU,3)
                     % Get current image to register to the template image and pre-process the current frame.
 
                     sourceImgGPU = tifStackGPU(:,:,ii);

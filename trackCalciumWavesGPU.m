@@ -519,19 +519,26 @@ for w = 1:max(waveTable.waveNumber)
     centerPerFrame{w} = flip( centerPerFrame{w});
 
     for i = 1:length(centerPerFrame{w})-1
-        % centroid distance per frame
-        distancePerFramePix{w}(i)= pdist([centerPerFrame{w}(i+1,:) ;centerPerFrame{w}(i,:)], 'euclidean');
-        distancePerFrameMicron{w}(i)= distancePerFramePix{w}(i) * exStruct.image.pixelSize;
 
-        % speed per frame
-        speedPerFrameMicronSec{w}(i) = distancePerFrameMicron{w}(i) / exStruct.framePeriod;
-        maxSpeed(w) = max(speedPerFrameMicronSec{w});
+        try
+            % centroid distance per frame
+            distancePerFramePix{w}(i)= pdist([centerPerFrame{w}(i+1,:) ;centerPerFrame{w}(i,:)], 'euclidean');
+            distancePerFrameMicron{w}(i)= distancePerFramePix{w}(i) * exStruct.image.pixelSize;
+
+            % speed per frame
+            speedPerFrameMicronSec{w}(i) = distancePerFrameMicron{w}(i) / exStruct.framePeriod;
+            maxSpeed(w) = max(speedPerFrameMicronSec{w});
+        catch
+
+        end
     end
 end
 
 %% remove waves due to slow wave movement
 for w = 1:max(waveTable.waveNumber)
+    if ~isempty(speedPerFrameMicronSec{w})
     maxSpeed(w) = max(speedPerFrameMicronSec{w});
+    end
 end
 
 waveRemoveIndx = maxSpeed < 10; % less than 10 micron/second
@@ -640,6 +647,8 @@ for i = 1: nImages
     stackImpWaves.changes = false;
     stackImpWaves.close;
 end
+
+RC.reset;
 
 %% add into waves
 waves.waveTable = waveTable;
