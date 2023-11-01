@@ -14,6 +14,7 @@ imageStruct = bfopen2(filePath);
 try
     omeMeta = imageStruct{1, 4};
     metaData = getFLAMEMetaData(omeMeta);
+    metaData.filePath = filePath;
 catch
     clear javaclasspath
     [metaData] = bfinfo(filePath);

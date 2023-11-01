@@ -42,11 +42,16 @@ RC.reset();
 
 %% load metaStruct
 exStruct = load(exStructPath);
-exStruct = exStruct.exStruct;
+
+try
+    exStruct = exStruct.exStruct;
+catch
+    exStruct = exStruct.metaData;
+end
 
 %% get filepath root
 filePathRoot = exStructPath(1:end-13);
-exStruct.filePath = [filePathRoot '.tif'];
+% exStruct.filePath = [filePathRoot '.tif'];
 
 %% start analysis
 

@@ -31,7 +31,11 @@ end
 
 %% run through the cells to plot
 
-timeBase = (1:size(cells.dF,2))/exStruct.rate; % time base in seconds
+try
+    timeBase = (1:size(cells.dF,2))/exStruct.rate; % time base in seconds
+catch
+    timeBase = (1:size(cells.dF,2))/exStruct.fps; % time base in seconds
+end
 
 for c = 1:cells.cellCount
 figH = figure('units','normalized','outerposition',[0 0 1 1]);

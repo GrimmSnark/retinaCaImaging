@@ -1,4 +1,4 @@
-function tifStack = read_Tiffs(filePath,imgScaling,updateFrequency,dataType,useWaitBar,codeVersion)
+function tifStack = read_Tiffs(filePath,imgScaling,colorIm, updateFrequency,dataType,useWaitBar,codeVersion)
 % tifStack = read_Tiffs(filePath,updateFrequency)
 %
 % A fast method to read a tif stack: calls the tiff library directly.
@@ -21,10 +21,11 @@ function tifStack = read_Tiffs(filePath,imgScaling,updateFrequency,dataType,useW
 % Max Planck Florida Institude
 
 if(nargin<2 || isempty(imgScaling)), imgScaling      = 1;      end
-if(nargin<3 || isempty(updateFrequency)), updateFrequency = 500;      end
-if(nargin<4 || isempty(dataType)), dataType        = 'uint16'; end
-if(nargin<5 || isempty(useWaitBar)), useWaitBar      = false;    end
-if(nargin<6 || isempty(codeVersion)), codeVersion     = 'Tiff';   end
+if(nargin<3 || isempty(colorIm)), colorIm      = 0;      end
+if(nargin<4 || isempty(updateFrequency)), updateFrequency = 500;      end
+if(nargin<5 || isempty(dataType)), dataType        = 'uint16'; end
+if(nargin<6 || isempty(useWaitBar)), useWaitBar      = false;    end
+if(nargin<7 || isempty(codeVersion)), codeVersion     = 'Tiff';   end
 tic;
 
 disp(['Reading Image Stack - ' filePath]);
@@ -55,7 +56,12 @@ end
 % Initialize MATLAB array to contain tif stack
 scaledX = round(xImage*imgScaling);
 scaledY = round(yImage*imgScaling);
-tifStack     = zeros(scaledY,scaledX,NumberOfImages,dataType);
+
+if colorIm == 0
+    tifStack     = zeros(scaledY,scaledX,NumberOfImages,dataType);
+else
+    tifStack     = zeros(scaledY,scaledX,3,NumberOfImages,'uint8');
+end
 currentImage = zeros(yImage,xImage);
    
 % Get imaging data
@@ -109,7 +115,11 @@ switch codeVersion
             if(imgScaling ~= 1 && imgScaling>0)
                 tifStack(:,:,i) = imresize(hTif.read(),[scaledY scaledX]); % Scales image size
             else
-                tifStack(:,:,i) = hTif.read();
+                if colorIm == 0
+                    tifStack(:,:,i) = hTif.read();
+                else
+                    tifStack(:,:,:,i)= hTif.read();
+                end
             end
             if(i == NumberOfImages)
                 hTif.close();

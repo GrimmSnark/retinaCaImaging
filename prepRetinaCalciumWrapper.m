@@ -8,7 +8,7 @@ if nargin <3 || isempty(channelOrg)
     channelOrg = [];
 end
 
-files = dir([folderPath '*.nd2']);
+files = dir([folderPath '**\*rec*.nd2']);
 
 if isempty(files)
     files = dir([folderPath '*.czi']);

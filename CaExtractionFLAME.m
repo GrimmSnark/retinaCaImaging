@@ -150,7 +150,12 @@ switch baselineSubType
             [~,percentileFiltCutOff(q)] = estimate_percentile_level((exStruct.cells.correctedF(q,:)'+offset),size(registeredVol,3),size(registeredVol,3));
 
             lowPassFiltCutOff    = 30; %in seconds
-            exStruct.cells.baseline(q,:)  = baselinePercentileFilter((exStruct.cells.correctedF(q,:)'+offset),exStruct.rate,lowPassFiltCutOff,percentileFiltCutOff(q));
+
+            try
+                exStruct.cells.baseline(q,:)  = baselinePercentileFilter((exStruct.cells.correctedF(q,:)'+offset),exStruct.rate,lowPassFiltCutOff,percentileFiltCutOff(q));
+            catch
+                 exStruct.cells.baseline(q,:)  = baselinePercentileFilter((exStruct.cells.correctedF(q,:)'+offset),exStruct.fps,lowPassFiltCutOff,percentileFiltCutOff(q));
+            end
 
         end
 

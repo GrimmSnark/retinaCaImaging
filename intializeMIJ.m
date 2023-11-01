@@ -25,10 +25,10 @@ catch ME
     javaaddpath([fijiPath '\macros'])
 %     javaaddpath([fijiPath 'plugins\BIJ_\bij.jar'])
     javaaddpath([fijiPath 'plugins\Cell_Magic_Wand_Tool.jar'])
-    javaaddpath([fijiPath 'plugins\jars\microglia-morphometry-0.5.3.jar']);
+    javaaddpath([fijiPath 'jars\microglia-morphometry-0.5.3.jar']);
     javaaddpath([fijiPath 'jars\commons-pool2-2.11.1.jar']);
-    javaaddpath([fijiPath 'jars\labkit-ui-0.3.10.jar']);
-    javaaddpath([fijiPath 'jars\labkit-pixel-classification-0.1.15.jar']);
+    javaaddpath([fijiPath 'jars\labkit-ui-0.3.11.jar']);
+    javaaddpath([fijiPath 'jars\labkit-pixel-classification-0.1.17.jar']);
 
 %     javaaddpath([fijiPath 'plugins\Image_Stabilizer\'])
     % javaaddpath([fijiPath 'plugins\bUnwarpJ_.jar']);

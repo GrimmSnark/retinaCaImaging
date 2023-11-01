@@ -73,18 +73,23 @@ if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
     imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
     imStackCal = squeeze(imStack(:,:,calciumChan,:));
 
-    % take single slice from blood vessel channel
-    imStackBV = squeeze(imStack(:,:,bvChan,:));
+    imStackBV = [];
+    if size(imStack,3) > 1
+        % take single slice from blood vessel channel
+        imStackBV = squeeze(imStack(:,:,bvChan,:));
+    end
 
     %clean up to save space
     clear('imStack');
 
-    ImBV = stdGPU(imStackBV,3);
-    imageIMSD = uint16(mat2gray(ImBV) * 65535);
-    saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
+    if ~isempty(imStackBV)
+        ImBV = stdGPU(imStackBV,3);
+        imageIMSD = uint16(mat2gray(ImBV) * 65535);
+        saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
 
-    %clean up to save space
-    clear('imStackBV');
+        %clean up to save space
+        clear('imStackBV');
+    end
 
 else
     imStackCal = read_Tiffs(filePath);

@@ -95,8 +95,15 @@ end
 
 distFromCenter = pdist2(opticNerveCentroid,waveStarts);
 
+% error correction
+try
+    BV_shape = polyshape(exStruct.waves.BV_Position);
+catch
+    BV_shape = polyshape(exStruct.waves.BV_poly);
+    exStruct.waves.BV_Position = exStruct.waves.BV_poly;
+end
 
-BV_shape = polyshape(exStruct.waves.BV_poly);
+
 % fit line from center to wave start point and calcuate distances
 for w = 1:length(exStruct.waves.centerPerFrame)
     pFit(w,:,:) = fitStraightLine(opticNerveCentroid, waveStarts(w,:), [0 512]);
