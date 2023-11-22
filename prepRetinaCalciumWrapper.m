@@ -10,6 +10,9 @@ end
 
 files = dir([folderPath '**\*rec*.nd2']);
 
+% remove snaps
+files = files(~contains({files(:).name},'snap'));
+
 if isempty(files)
     files = dir([folderPath '*.czi']);
 end

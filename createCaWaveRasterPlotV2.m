@@ -1,4 +1,4 @@
-function createCaWaveRasterPlotV2(exStructPath, saveType)
+function createCaWaveRasterPlotV2(exStructPath, saveType, downsampleFactor)
 
 if nargin < 1 || isempty(exStructPath)
     [file, path] = uigetfile({'*.mat'},...
@@ -11,6 +11,10 @@ if nargin <2 || isempty(saveType)
     saveType = '.tif';
 end
 
+if nargin < 3 || isempty(downsampleFactor)
+    downsampleFactor = 1;
+end
+
 %% load in exStruct
 exStruct = load(exStructPath);
 exStruct = exStruct.exStruct;
@@ -21,6 +25,8 @@ disp('Loaded in exStruct.mat')
 [saveFolder, name] = fileparts(exStructPath);
 waveColPath = fullfile(saveFolder, [name(1:end-9) '_waveCol.tif']);
 waveIm = read_Tiffs(waveColPath,[],1);
+
+waveIm = imresize(waveIm,downsampleFactor,"nearest");
 
 %% contruct filtering cmap
 waveCmap(1,:) = [ 0 0 0];
@@ -42,22 +48,40 @@ indIm(indIm>=2) = indIm(indIm>=2)-1;
 indImReshape = reshape(indIm, [], size(indIm,3));
 
 %% restrict to pixels inside boundary
-dwnSampleBoundary = imresize(exStruct.waves.retinaBoundMask, 1);
+dwnSampleBoundary = imresize(exStruct.waves.retinaBoundMask, downsampleFactor, "nearest");
 linBoundary = reshape(dwnSampleBoundary,[],1);
 
 indImReshape = indImReshape(logical(linBoundary),:);
 
 %% plot pixel x timeseries image
-waveMapDisplay = [1 1 1 ; waveCols];
+% waveMapDisplay = [1 1 1 ; waveCols];
+% 
+% figH = figure('units','normalized','outerposition',[0 0 1 1]);
+% imagesc(indImReshape);
+% colormap(waveMapDisplay);
+% xlim([0 size(indImReshape,2)]);
+% ylim([0 size(indImReshape,1)]);
+% 
+% xlabel('Time in seconds');
+% ylabel(['Pixel ROI no. (Resolution ' num2str(round(exStruct.downsampledRes)) 'um x ' num2str(round(exStruct.downsampledRes))  'um)']);
+% 
+% 
+% title(name,Interpreter="none");
+% tightfig;
 
 figH = figure('units','normalized','outerposition',[0 0 1 1]);
-imagesc(indImReshape);
-colormap(waveMapDisplay);
+hold on
+
+for i = 1:max(exStruct.waves.waveTable.waveNumber)
+    spikes = indImReshape ==i;
+ [xPoints, yPoints] = plotCaRaster(spikes, waveCols(i,:));
+end
+
 xlim([0 size(indImReshape,2)]);
 ylim([0 size(indImReshape,1)]);
 
 xlabel('Time in seconds');
-ylabel(['Pixel ROI no. (Resolution ' num2str(round(exStruct.downsampledRes)) 'um x ' num2str(round(exStruct.downsampledRes))  'um)']);
+ylabel(['Pixel ROI no. (Resolution ' num2str(round(exStruct.downsampledRes)/downsampleFactor) 'um x ' num2str(round(exStruct.downsampledRes)/downsampleFactor)  'um)']);
 
 
 title(name,Interpreter="none");
@@ -65,8 +89,11 @@ tightfig;
 
 %% save
 
-% saveas(figH, fullfile(saveFolder, [name(1:end-9) '_waveRaster.tif']));
-saveas(figH, fullfile(saveFolder, [name(1:end-9) '_waveRaster ' saveType]));
+if ~strcmp(saveType,'.eps')
+    saveas(figH, fullfile(saveFolder, [name(1:end-9) '_waveRaster' saveType]));
+else
+    exportgraphics(gca, fullfile(saveFolder, [name(1:end-9) '_waveRaster' saveType]), "ContentType","vector");
+end
 
 close;
 

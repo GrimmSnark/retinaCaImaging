@@ -1,7 +1,7 @@
-function  [xPoints, yPoints] = plotCaRaster(spikes)
+function  [xPoints, yPoints] = plotCaRaster(spikes, col)
 
 
-vertSpikeHeight = 1;
+vertSpikeHeight = 0.5;
 vertSpikePosition = 0;
 %% Binary spike train matrix case. Initialize variables and set axes.
 nTrials = size(spikes,1);
@@ -27,7 +27,7 @@ yPoints = [ trials - halfSpikeHeight + vertSpikePosition;
 
 xPoints = xPoints(:);
 yPoints = yPoints(:);
-plot(xPoints,yPoints, 'Color', [0.2 0.2 0.2]);
+plot(xPoints,yPoints, 'Color', col);
 set(gca,'YDir','reverse');
 
 end
