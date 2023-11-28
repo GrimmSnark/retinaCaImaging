@@ -152,9 +152,9 @@ for s = 1:numSeries
     colorMaps = cell(numImages);
     for i = 1:numImages
         if mod(i, 72) == 1
-            fprintf('\n    ');
+%             fprintf('\n    ');
         end
-        fprintf('.');
+%         fprintf('.');
         arr = bfGetPlane(r, i, varargin{:});
 
         % retrieve color map data

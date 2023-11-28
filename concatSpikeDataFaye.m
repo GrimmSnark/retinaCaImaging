@@ -1,8 +1,8 @@
 function concatSpikeDataFaye()
 % pulls all the spike data into a single excel sheet
 
- [path] = uigetdir('', 'Pick a Directory');
-%[path] = 'I:\Faye';
+%  [path] = uigetdir('', 'Pick a Directory');
+[path] = 'I:\Faye';
 
 
 exStructPaths = dir([path '\**\*exStruct.mat']);
@@ -13,6 +13,15 @@ firingRates = [];
 meanSpikeAmp = [];
 meanExStructPath = [];
 cellNoMean = [];
+exStructTablePath = [];
+
+%% spike metrics
+spikeAmp = [];
+spikeWidth = [];
+riseTime = [];
+decayTime = [];
+cellNo = [];
+spikeNo = [];
 
 % for all exStructs
 for i = 1:length(exStructPaths)
@@ -20,37 +29,36 @@ for i = 1:length(exStructPaths)
     currentExPath = fullfile(exStructPaths(i).folder, exStructPaths(i).name);
 
     load(currentExPath);
-    %% spike metrics
-    spikeAmp = [];
-    spikeWidth = [];
-    riseTime = [];
-    decayTime = [];
-    cellNo = [];
-    spikeNo = [];
 
-    for c = 1:exStruct.cellCount
-        currAmps = exStruct.spikes.spikeAmp{c}';
-        currWidths = exStruct.spikes.spikeWidths{c}';
-        currRise = exStruct.spikes.riseTime{c}';
-        currDecay = exStruct.spikes.decayTime{c}';
-        currCell = repmat(c,1,length(currDecay))';
+    if isfield(exStruct, 'spikes')
+        for c = 1:exStruct.cellCount
+            currAmps = exStruct.spikes.spikeAmp{c}';
+            currWidths = exStruct.spikes.spikeWidths{c}';
+            currRise = exStruct.spikes.riseTime{c}';
+            currDecay = exStruct.spikes.decayTime{c}';
+            currCell = repmat(c,1,length(currDecay))';
 
-        spikeAmp = [spikeAmp ;currAmps];
-        spikeWidth = [ spikeWidth; currWidths];
-        riseTime = [riseTime; currRise];
-        decayTime = [decayTime ; currDecay];
-        cellNo = [cellNo ;currCell];
-        spikeNo = [spikeNo; (1:length(currCell))'];
+            spikeAmp = [spikeAmp ;currAmps];
+            spikeWidth = [ spikeWidth; currWidths];
+            riseTime = [riseTime; currRise];
+            decayTime = [decayTime ; currDecay];
+            cellNo = [cellNo ;currCell];
+            spikeNo = [spikeNo; (1:length(currCell))'];
 
+        end
+
+        exStructTablePath = [exStructTablePath ;repmat({currentExPath}, length([exStruct.spikes.spikeAmp{:}]),1)];
+
+        %% mean metrics
+        meanExStructPath = [meanExStructPath ;repmat({currentExPath}, exStruct.cellCount,1)];
+        cellNoMean = [cellNoMean; (1: exStruct.cellCount)'];
+        firingRates = [firingRates; exStruct.spikes.firingRate' ];
+        meanSpikeAmp = [meanSpikeAmp; exStruct.spikes.meanSpikeAmp'];
+
+    else
+
+        disp([currentExPath 'does not contain spikes field....moving on']);
     end
-
-    exStructTablePath = repmat({currentExPath}, length(spikeNo),1);
-
-    %% mean metrics
-    meanExStructPath = [meanExStructPath ;repmat({currentExPath}, exStruct.cellCount,1)];
-    cellNoMean = [cellNoMean; (1: exStruct.cellCount)'];
-    firingRates = [firingRates; exStruct.spikes.firingRate' ];
-    meanSpikeAmp = [meanSpikeAmp; exStruct.spikes.meanSpikeAmp'];
 
 end
 
