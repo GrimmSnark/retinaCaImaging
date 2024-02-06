@@ -27,6 +27,9 @@ stackImpSD = MIJ.createImage('SD', SD_image, 1);
 ij.process.ImageConverter(stackImpBV).convertToGray8();
 ij.process.ImageConverter(stackImpSD).convertToGray8();
 
+ij.gui.ImageWindow(stackImpBV);
+MIJ.run("Subtract Background...", "rolling=50");
+
 %% adjust brightness contrast and return to matlab
 MIJ.run("Brightness/Contrast...");
 
