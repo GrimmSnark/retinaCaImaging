@@ -12,7 +12,7 @@ end
 
 %% load in images
 BV_imagePath = dir([exStructPath(1:end-13) '*BV*tif']);
-BV_image = read_Tiffs(fullfile(BV_imagePath.folder,BV_imagePath.name));
+BV_image = read_Tiffs(fullfile(BV_imagePath(1).folder,BV_imagePath(1).name));
 
 SD_imagePath = dir([exStructPath(1:end-13) '_dF_SD.tif']);
 SD_image = read_Tiffs(fullfile(SD_imagePath.folder,SD_imagePath.name));
