@@ -91,7 +91,8 @@ for iCell=1:nCells
     if corrFactor(iCell,2) < 1
         signalTrace(iCell,:)=cellRoiTrace(iCell,:)-corrFactor(iCell,2)*neuropRoiTrace(iCell,:);
     else
-        corrFactor(iCell,2) = 0.7;
+%         corrFactor(iCell,2) = 0.7;
+         corrFactor(iCell,2) = 1;
         signalTrace(iCell,:)=cellRoiTrace(iCell,:)-corrFactor(iCell,2)*neuropRoiTrace(iCell,:);
     end
 

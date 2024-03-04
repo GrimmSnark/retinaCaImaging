@@ -76,19 +76,29 @@ if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
     imStackBV = [];
     if size(imStack,3) > 1
         % take single slice from blood vessel channel
-        imStackBV = squeeze(imStack(:,:,bvChan,:));
+        if gpuDevice > 0
+            imStackBV = gpuArray(squeeze(imStack(:,:,bvChan,:)));
+        else
+            imStackBV = squeeze(imStack(:,:,bvChan,:));
+        end
     end
 
     %clean up to save space
     clear('imStack');
 
     if ~isempty(imStackBV)
-        ImBV = stdGPU(imStackBV,3);
-        imageIMSD = uint16(mat2gray(ImBV) * 65535);
-        saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
+        if gpuDevice > 0
+            ImBV = stdGPU(imStackBV,3);
+            imageIMSD = uint16(mat2gray(ImBV) * 65535);
+            saveastiff(gather(imageIMSD), fullfile(folderParts, [name '_BV_SD.tif']));
+        else
+            ImBV = stdGPU(imStackBV,3);
+            imageIMSD = uint16(mat2gray(ImBV) * 65535);
+            saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
+        end
 
-        %clean up to save space
-        clear('imStackBV');
+            %clean up to save space
+            clear('imStackBV');
     end
 
 else

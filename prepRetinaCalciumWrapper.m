@@ -18,7 +18,7 @@ if isempty(files)
 end
 
 for i = fileStartNo:length(files)
-    disp(['On file no. ' num2str(i) ' of ' num2str(length(files))])
+    disp(['Preprocessing file no. ' num2str(i) ' of ' num2str(length(files))])
     prepRetinaCalcium(fullfile(files(i).folder,files(i).name),[],[],[],1, channelOrg);
 end
 

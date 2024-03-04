@@ -1,7 +1,7 @@
 function  [xPoints, yPoints] = plotCaRaster(spikes, col)
 
 
-vertSpikeHeight = 0.5;
+vertSpikeHeight = 1;
 vertSpikePosition = 0;
 %% Binary spike train matrix case. Initialize variables and set axes.
 nTrials = size(spikes,1);
