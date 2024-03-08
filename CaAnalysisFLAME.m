@@ -51,7 +51,9 @@ end
 
 %% get filepath root
 filePathRoot = exStructPath(1:end-13);
-% exStruct.filePath = [filePathRoot '.tif'];
+exStruct.filePath = [filePathRoot '.tif'];
+% exStruct.filePath = filePathRoot;
+
 
 %% start analysis
 

@@ -125,7 +125,11 @@ switch baselineSubType
             [~, exStruct.cells.baslineBleaching(q,:)] = fitexpCurve(1:size(exStruct.cells.rawF,2), exStruct.cells.rawF(q,:));
 
             % baseline subtraction
-            exStruct.cells.baseline(q,:) = baselinePercentileFilter(exStruct.cells.baslineBleaching(q,:)', exStruct.cells.fps ,30);
+            try
+                exStruct.cells.baseline(q,:) = baselinePercentileFilter(exStruct.cells.baslineBleaching(q,:)', exStruct.cells.fps ,30);
+            catch
+                exStruct.cells.baseline(q,:) = baselinePercentileFilter(exStruct.cells.baslineBleaching(q,:)', exStruct.rate ,30);
+            end
 
         end
 

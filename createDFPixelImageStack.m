@@ -41,7 +41,9 @@ if gpuDeviceCount == 1
 
     %% run computation on GPU
     imStackLinearGPU = gpuArray(imStackLinear);
-    parfor_progress(length(imStackLinear));
+    %     parfor_progress(length(imStackLinear));
+    tic
+    disp('Working on pixelwise dF/F image, will take some time...')
     parfor i = 1:length(imStackLinear)
         %     for i = 1:length(imStackLinear)
 
@@ -55,15 +57,17 @@ if gpuDeviceCount == 1
         highpassFilteredTrace(i,:) = baselinePercentileFilter2(yBaselined(i,:)', 1/framePeriod ,30);
 
         %         prcdone(i,length(imStackLinear),'Baseline on GPU',10 ,tStart);
-        parfor_progress;
+        %         parfor_progress;
     end
-    parfor_progress(0);
+    %     parfor_progress(0);
 
     highpassFilteredTrace = gather(highpassFilteredTrace);
     yBaselined = gather(yBaselined);
+
+    toc; 
 else
     % run computation on CPU
-    parfor_progress(length(imStackLinear));
+    %     parfor_progress(length(imStackLinear));
     parfor i = 1:length(imStackLinear)
         % fit exp curve to remove bleaching
         y = double(imStackLinear(i,:));
@@ -72,10 +76,13 @@ else
 
         %% baseline subtraction
         highpassFilteredTrace(i,:) = baselinePercentileFilter(yBaselined(i,:)', 1/framePeriod ,30);
-        parfor_progress;
+        %         parfor_progress;
     end
-    parfor_progress(0);
+    %     parfor_progress(0);
 end
+
+disp('Completed pixelwise dF/F image')
+
 
 % close parpool to save space on RAM...
 poolobj = gcp('nocreate');

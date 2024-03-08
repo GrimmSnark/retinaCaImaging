@@ -102,11 +102,11 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
 
             disp('Starting to calculate frame shifts using GPU');
 
-            parfor_progress(numberOfImages);
+%             parfor_progress(numberOfImages);
             parfor ii = 1:numberOfImages
                 % Get current image to register to the template image and pre-process the current frame.
 
-                parfor_progress; % get progress in parfor loop
+%                 parfor_progress; % get progress in parfor loop
 
                 sourceImgGPU = tifStackGPU(:,:,ii);
                 if(useSpatialFiltering)
@@ -129,11 +129,11 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
         disp('Starting to calculate frame shifts using CPU');
         xyShifts       = zeros(2,numberOfImages);
 
-        parfor_progress(numberOfImages)
+%         parfor_progress(numberOfImages)
         parfor ii = 1:numberOfImages
             % Get current image to register to the template image and pre-process the current frame.
 
-            parfor_progress; % get progress in parfor loop
+%             parfor_progress; % get progress in parfor loop
 
             sourceImg = tifStack(:,:,ii);
             if(useSpatialFiltering)
