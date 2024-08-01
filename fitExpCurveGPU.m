@@ -12,6 +12,7 @@ function [fittedY, yBaselined, coefficients] =fitExpCurveGPU(xData, yData)
 % Take the logarithm of the y-values
 
 logY = log(yData);
+% logY = log(complex(yData));
 
 % remove any inf values
 logY(logY == -inf) = 0;
@@ -25,7 +26,7 @@ intercept = coefficients(2);
 
 % Compute the fitted exponential decay curve
 fittedY = exp(intercept) * exp(slope * xData);
-fittedY = fittedY* 0.97; % scale down to allow for postive trace
+fittedY = fittedY* 0.95; % scale down to allow for postive trace
 
 
 % fittedY = gather(fittedY);

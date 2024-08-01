@@ -27,7 +27,7 @@ if nargin < 2 || isempty(fileStartNo)
 end
 
 if nargin < 3 || isempty(motionCorrFlag)
-    motionCorrFlag = 1;
+    motionCorrFlag = 0;
 end
 
 if nargin < 4 || isempty(motionCorrectionType)

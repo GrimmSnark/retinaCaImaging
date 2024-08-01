@@ -28,11 +28,15 @@ fallSampleSm = smoothdata(fallSample);
 
 % get the elbow points
 riseThreshIndx = triangle_threshold(riseSampleSm, 'L',0)-1;
-fallThreshIndx = triangle_threshold(fallSampleSm, 'R',0);
+% [~, fallThreshIndx] = min(fallSampleSm);
+fallThreshIndx = triangle_threshold(fallSampleSm, 'R',0)+5;
+
 
 % make riseThresholdINdx relative to the peak index
 riseThreshIndxRelative = (length(riseSample)- riseThreshIndx);
 
+
+%% uncomment for plotting
 % subplot(211)
 % plot(riseSampleSm)
 % hold on
@@ -42,6 +46,7 @@ riseThreshIndxRelative = (length(riseSample)- riseThreshIndx);
 % subplot(212)
 % plot(fallSampleSm)
 % hold on
+% plot(gradient(fallSampleSm))
 % scatter(fallThreshIndx,fallSampleSm(fallThreshIndx));
 % hold off
 

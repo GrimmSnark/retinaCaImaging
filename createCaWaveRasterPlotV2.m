@@ -89,11 +89,8 @@ tightfig;
 
 %% save
 
-if ~strcmp(saveType,'.eps')
-    saveas(figH, fullfile(saveFolder, [name(1:end-9) '_waveRaster' saveType]));
-else
-    exportgraphics(gca, fullfile(saveFolder, [name(1:end-9) '_waveRaster' saveType]), "ContentType","vector");
-end
+saveas(figH, fullfile(saveFolder, [name(1:end-9) '_waveRaster' saveType]));
+% exportgraphics(gca, fullfile(saveFolder, [name(1:end-9) '_waveRaster.eps']), "ContentType","vector");
 
 close;
 

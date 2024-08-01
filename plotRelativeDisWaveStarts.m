@@ -29,6 +29,12 @@ if ~isfield(exStruct.waves, 'relDistanceTab')
 
     ij.IJ.runMacro('setTool("polygon");');
 
+    %% if exist load previously chosen ROIs
+    if isfield(exStruct.waves, 'opticNerveMask')
+        createImageJROIsFromLabeledROI(exStruct.waves.opticNerveMask,RC,0);
+        createImageJROIsFromLabeledROI(exStruct.waves.retinaBoundMask,RC,0, 100);
+    end
+
     %% choose ROI shapes for cluster cells
 
     % Sets up diolg box to allow for user input to choose cell ROIs
@@ -153,6 +159,35 @@ center2BVEdge = center2BVEdge';
 relDistanceTab = table(waveStarts, distFromCenter, pFit, center2RetinaEdge , retinaEdgePos, center2BVEdge, BVEdgePos);
 relDistanceTab.D1_2 = relDistanceTab.distFromCenter./relDistanceTab.center2RetinaEdge;
 relDistanceTab.D1_3 = relDistanceTab.distFromCenter./relDistanceTab.center2BVEdge;
+
+
+%% Calculate Blood Vessel D1/2
+
+BV_poly = exStruct.waves.BV_poly;
+for i=1:length(BV_poly)
+
+    % fit line through retinal centre and BV vertex position through to
+    % edge of image
+    pFit(i,:,:) = fitStraightLine(opticNerveCentroid, BV_poly(i,:), [0 512]);
+
+    % get both side intersections on the line
+    currLine = squeeze(pFit(i,:,:));
+    [inR, outR] = intersect(retinaBoundShape,  currLine);
+
+    % find the shortest path between BV and retina bound
+    [~,indUsed] = pdist2(inR, BV_poly(i,:),'euclidean','Smallest',1);
+    retinaCrossingCoor = inR(indUsed,:);
+    line2Use = [opticNerveCentroid; retinaCrossingCoor];
+
+    center2RetinaEdge = pdist2(retinaCrossingCoor, opticNerveCentroid,'euclidean','Smallest',1);
+    center2BV_Vert = pdist2(BV_poly(i,:), opticNerveCentroid,'euclidean','Smallest',1);
+
+    vertexD1_2(i) = center2BV_Vert/center2RetinaEdge;
+end
+
+BV_D1_2 = mean(vertexD1_2);
+
+exStruct.waves.BV_D1_2 = BV_D1_2;
 
 %% add to exStruct and save
 

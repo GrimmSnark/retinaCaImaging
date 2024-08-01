@@ -542,7 +542,7 @@ for w = 1:max(waveTable.waveNumber)
 
     % get wave extent in pixels
     waves.waveArea(w) = length(wavePixels);
-    waves.waveAreaMicron(w) = length(wavePixels) * exStruct.downsampledRes;
+    waves.waveAreaMicron(w) = length(wavePixels) * (exStruct.downsampledRes ^ 2);
 
 
     SDImageRGB = repmat(SDImage, 1, 1, 3);

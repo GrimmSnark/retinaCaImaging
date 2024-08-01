@@ -63,12 +63,18 @@ end
 
 noOfImagesForAlignment = 100; % number of brightest images used for motion correction template image
 
+
+intializeMIJ;
+
 %% get save folder locations
 [folderParts, name, ext ] = fileparts(filePath);
 
 %% read in image file
 if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
+%     profile on
     [imStack, metaData] = readFLAMEData(filePath);
+
+%     profile viewer
     % split into channels
     imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
     imStackCal = squeeze(imStack(:,:,calciumChan,:));

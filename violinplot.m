@@ -145,13 +145,18 @@ elseif iscell(data) && length(data(:))>2 % cell input
     error('Up to two datasets can be compared');
 elseif isnumeric(data) % numeric input   
     % 1D data, one category for each data point
-    if hascategories && numel(data) == numel(cats)    
+    if hascategories && numel(data) == numel(cats)
         if isempty(grouporder)
             cats = categorical(cats);
         else
-            cats = categorical(cats, grouporder);
+            try
+                cats = categorical(cats, grouporder);
+            catch
+                cats = categorical(cats);
+                cats = categorical(cats, grouporder);
+            end
         end
-        
+
         catnames = (unique(cats)); % this ignores categories without any data
         catnames_labels = {};
         for n = 1:length(catnames)
