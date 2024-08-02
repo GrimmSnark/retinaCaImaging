@@ -1,8 +1,8 @@
 function concatSpikeDataFaye()
 % pulls all the spike data into a single excel sheet
 
-%  [path] = uigetdir('', 'Pick a Directory');
-[path] = 'I:\Faye';
+ [path] = uigetdir('', 'Pick a Directory');
+% [path] = '\\campus\rdw\ion10\10\retina\data\Savage\calcium\Faye\July 2024 files';
 
 
 exStructPaths = dir([path '\**\*exStruct.mat']);
@@ -15,6 +15,12 @@ meanExStructPath = [];
 cellNoMean = [];
 exStructTablePath = [];
 
+firingRatesSmallSpikes = [];
+meanSpikeAmpSmallSpikes = [];
+meanExStructPathSmallSpikes = [];
+cellNoMeanSmallSpikes = [];
+exStructTablePathSmallSpikes = [];
+
 %% spike metrics
 spikeAmp = [];
 spikeWidth = [];
@@ -22,6 +28,13 @@ riseTime = [];
 decayTime = [];
 cellNo = [];
 spikeNo = [];
+
+spikeSmallAmp = [];
+spikeSmallWidth = [];
+riseTimeSmall = [];
+decayTimeSmall = [];
+cellNoSmall = [];
+spikeSmallNo = [];
 
 % for all exStructs
 for i = 1:length(exStructPaths)
@@ -32,6 +45,8 @@ for i = 1:length(exStructPaths)
 
     if isfield(exStruct, 'spikes')
         for c = 1:exStruct.cellCount
+
+            % large spike stuff
             currAmps = exStruct.spikes.spikeAmp{c}';
             currWidths = exStruct.spikes.spikeWidths{c}';
             currRise = exStruct.spikes.riseTime{c}';
@@ -45,9 +60,24 @@ for i = 1:length(exStructPaths)
             cellNo = [cellNo ;currCell];
             spikeNo = [spikeNo; (1:length(currCell))'];
 
+
+            % small spike stuff
+            currAmpsSmall = exStruct.spikesSmall.spikeAmp{c}';
+            currWidthsSmall = exStruct.spikesSmall.spikeWidths{c}';
+            currRiseSmall = exStruct.spikesSmall.riseTime{c}';
+            currDecaySmall = exStruct.spikesSmall.decayTime{c}';
+            currCellSmall = repmat(c,1,length(currDecaySmall))';
+
+            spikeSmallAmp = [spikeSmallAmp ;currAmpsSmall];
+            spikeSmallWidth = [ spikeSmallWidth; currWidthsSmall];
+            riseTimeSmall = [riseTimeSmall; currRiseSmall];
+            decayTimeSmall = [decayTimeSmall ; currDecaySmall];
+            cellNoSmall = [cellNoSmall ;currCellSmall];
+            spikeSmallNo = [spikeSmallNo; (1:length(currCellSmall))'];
         end
 
         exStructTablePath = [exStructTablePath ;repmat({currentExPath}, length([exStruct.spikes.spikeAmp{:}]),1)];
+        exStructTablePathSmallSpikes = [exStructTablePathSmallSpikes ;repmat({currentExPath}, length([exStruct.spikesSmall.spikeAmp{:}]),1)];
 
         %% mean metrics
         meanExStructPath = [meanExStructPath ;repmat({currentExPath}, exStruct.cellCount,1)];
@@ -55,19 +85,34 @@ for i = 1:length(exStructPaths)
         firingRates = [firingRates; exStruct.spikes.firingRate' ];
         meanSpikeAmp = [meanSpikeAmp; exStruct.spikes.meanSpikeAmp'];
 
+        meanExStructPathSmallSpikes = [meanExStructPathSmallSpikes ;repmat({currentExPath}, exStruct.cellCount,1)];
+        cellNoMeanSmallSpikes = [cellNoMeanSmallSpikes; (1: exStruct.cellCount)'];
+        firingRatesSmallSpikes = [firingRatesSmallSpikes; exStruct.spikesSmall.firingRate' ];
+        meanSpikeAmpSmallSpikes = [meanSpikeAmpSmallSpikes; exStruct.spikesSmall.meanSpikeAmp'];
+
     else
 
-        disp([currentExPath 'does not contain spikes field....moving on']);
+        disp([currentExPath ' does not contain spikes field....moving on']);
     end
 
 end
 
 grandTable = table(exStructTablePath, cellNo,  spikeNo, spikeAmp, spikeWidth, riseTime, decayTime);
+grandTableSmall = table(exStructTablePathSmallSpikes, cellNoSmall,  spikeSmallNo, spikeSmallAmp, spikeSmallWidth, riseTimeSmall, decayTimeSmall);
+
 meanTable = table(meanExStructPath, cellNoMean, firingRates, meanSpikeAmp);
+meanTableSmall = table(meanExStructPathSmallSpikes, cellNoMeanSmallSpikes, firingRatesSmallSpikes, meanSpikeAmpSmallSpikes);
+
+% clean tables
+meanTable(meanTable.meanSpikeAmp == 0,:)=[];
+meanTableSmall(meanTableSmall.meanSpikeAmpSmallSpikes == 0,:)=[];
+
 
 % saving
 
-writetable(grandTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet',1);
-writetable(meanTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet',2);
+writetable(grandTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike Grand Table');
+writetable(meanTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike Mean Table');
+writetable(grandTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Grand Table');
+writetable(meanTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Mean Table');
 
 end

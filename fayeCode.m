@@ -120,6 +120,7 @@ riseTimeIndxStructSmall = cell(size(riseTimeStruct));
 decayTimeIndxStructSmall =cell(size(riseTimeStruct));
 spikeLocsSmallDF = cell(size(riseTimeStruct));
 spikeAmpSmallDF = cell(size(riseTimeStruct));
+spikeWidthsSmall = cell(size(riseTimeStruct));
 
 spikeAmpWhitened =[];
 for c= 1:exStruct.cellCount
@@ -162,11 +163,12 @@ for c= 1:exStruct.cellCount
                 % get the peak in the small spike extract
                 try
                     dFextract = dFTrace(sampleSt:sampleEnd);
-                    [spikeAmpSmallDF{c}(sp), spikeLocsSmallDF{c}(sp)] = findpeaks(dFextract,"MinPeakHeight",0.07,"NPeaks",1);
+                    [spikeAmpSmallDF{c}(sp), spikeLocsSmallDF{c}(sp), spikeWidthsSmall{c}(sp) ] = findpeaks(dFextract,"MinPeakHeight",0.07,"NPeaks",1);
                     spikeLocsSmallDF{c}(sp) = spikeLocsSmallDF{c}(sp)+sampleSt-1;
                 catch
                     spikeAmpSmallDF{c}(sp) = NaN;
                     spikeLocsSmallDF{c}(sp) = NaN;
+                    spikeWidthsSmall{c}(sp) = NaN;
                     riseTimeStructSmall{c}(sp) = NaN;
                     decayTimeStructSmall{c}(sp) = NaN;
                     riseTimeIndxStructSmall{c}(sp) = NaN;
@@ -214,11 +216,18 @@ for c= 1:exStruct.cellCount
         end
     end
 
+    % remove zeros
+    riseTimeStructSmall{c} =  riseTimeStructSmall{c}(riseTimeStructSmall{c}>0);
+    decayTimeStructSmall{c} = decayTimeStructSmall{c}(decayTimeStructSmall{c}>0);
+    riseTimeIndxStructSmall{c} = riseTimeIndxStructSmall{c}(riseTimeIndxStructSmall{c}>0);
+    decayTimeIndxStructSmall{c} = decayTimeIndxStructSmall{c}(decayTimeIndxStructSmall{c}>0);
+
     % remove nans
     spikeAmpSmallDF{c} =  spikeAmpSmallDF{c}(~isnan(spikeAmpSmallDF{c}));
     spikeLocsSmallDF{c} = spikeLocsSmallDF{c}(~isnan(spikeLocsSmallDF{c}));
+    spikeWidthsSmall{c} = spikeWidthsSmall{c}(~isnan(spikeLocsSmallDF{c}));
     riseTimeStructSmall{c} = riseTimeStructSmall{c}(~isnan(riseTimeStructSmall{c}));
-    decayTimeStructSmall{c} = decayTimeStructSmall(~isnan(decayTimeStructSmall{c}));
+    decayTimeStructSmall{c} = decayTimeStructSmall{c}(~isnan(decayTimeStructSmall{c}));
     riseTimeIndxStructSmall{c} = riseTimeIndxStructSmall{c}(~isnan(riseTimeIndxStructSmall{c}));
     decayTimeIndxStructSmall{c} = decayTimeIndxStructSmall{c}(~isnan(decayTimeIndxStructSmall{c}));
 end
@@ -232,6 +241,7 @@ for vv = 1: length(spikeLocsSmallDF)
 
         spikeAmpSmallDF{vv}(indexToDupes) = [];
         spikeLocsSmallDF{vv}(indexToDupes) = [];
+        spikeWidthsSmall{vv}(indexToDupes) = [];
         riseTimeStructSmall{vv}(indexToDupes) = [];
         decayTimeStructSmall{vv}(indexToDupes) = [];
         riseTimeIndxStructSmall{vv}(indexToDupes) = [];
@@ -270,6 +280,7 @@ for c= 1:exStruct.cellCount
         riseTimeIndxStructSmall{c}(ind2Del) = [];
         decayTimeIndxStructSmall{c}(ind2Del) = [];
         spikeAmpSmallDF{c}(ind2Del) = [];
+        spikeWidthsSmall{c}(ind2Del) = [];
     end
 
     % add firing rate
@@ -300,6 +311,7 @@ exStruct.spikes.meanSpikeAmp = meanAmp; % mean spike dF amplitude
 % small spikes
 exStruct.spikesSmall.spikeAmp = spikeAmpSmallDF;
 exStruct.spikesSmall.spikeLocs = spikeLocsSmallDF;
+exStruct.spikesSmall.spikeWidths = spikeWidthsSmall;
 exStruct.spikesSmall.riseTime = riseTimeStructSmall;
 exStruct.spikesSmall.decayTime = decayTimeStructSmall;
 exStruct.spikesSmall.riseTimeIndx = riseTimeIndxStructSmall;
@@ -365,7 +377,7 @@ end
 tightfig;
 
 fileStruct = dir(exStruct.filePath);
-saveas(zscoreFig,fullfile(fileStruct.folder,[fileStruct.name(1:end-4) 'DF_fig.tif'] ));
+saveas(zscoreFig,fullfile(fileStruct.folder,[fileStruct.name(1:end-4) 'DF_fig.tif']));
 
 %% save data
 save(exStructPath, "exStruct", '-v7.3');
