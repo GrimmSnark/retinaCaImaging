@@ -1,5 +1,14 @@
 function fayeCodeWrapper(path)
 
+
+if nargin < 1 || isempty(exStructPath)
+    [file, path] = uigetfile({'*.mat'},...
+        'Folder to Process Selector');
+
+    exStructPath = fullfile(path,file);
+end
+
+
 exStructPaths = dir([path '\**\*exStruct.mat']);
 
 disp(['Found ' num2str(length(exStructPaths)) ' experiment folders, moving on....'])
