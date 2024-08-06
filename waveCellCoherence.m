@@ -54,7 +54,7 @@ spikesSorted(:,3) = waveIDs;
 %% calculate wave "coherence"
 
 for i = 1:max(waveIDs)
-    waveCoh(i) = sum(spikesSorted(:,3)==i)/length(unique(spikesSorted(:,3)));
+    waveCoh(i) = sum(spikesSorted(:,3)==i)/length(unique(spikesSorted(:,2)));
 end
 
 %% cell "coherence"

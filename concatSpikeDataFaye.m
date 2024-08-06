@@ -1,8 +1,8 @@
 function concatSpikeDataFaye()
 % pulls all the spike data into a single excel sheet
 
- [path] = uigetdir('', 'Pick a Directory');
-% [path] = '\\campus\rdw\ion10\10\retina\data\Savage\calcium\Faye\July 2024 files';
+%  [path] = uigetdir('', 'Pick a Directory');
+[path] = '\\campus\rdw\ion10\10\retina\data\Savage\calcium\Faye\July 2024 files';
 
 
 exStructPaths = dir([path '\**\*exStruct.mat']);
@@ -20,6 +20,14 @@ meanSpikeAmpSmallSpikes = [];
 meanExStructPathSmallSpikes = [];
 cellNoMeanSmallSpikes = [];
 exStructTablePathSmallSpikes = [];
+
+cellCoherencePaths =[];
+cellCoherenceCellNo =[];
+cellCoherence =[];
+
+waveCoherencePaths = [];
+waveCoherenceWaveNo = [];
+waveCoherence = [];
 
 %% spike metrics
 spikeAmp = [];
@@ -90,6 +98,16 @@ for i = 1:length(exStructPaths)
         firingRatesSmallSpikes = [firingRatesSmallSpikes; exStruct.spikesSmall.firingRate' ];
         meanSpikeAmpSmallSpikes = [meanSpikeAmpSmallSpikes; exStruct.spikesSmall.meanSpikeAmp'];
 
+        %% cell coherence metrics
+        cellCoherencePaths = [cellCoherencePaths ;repmat({currentExPath}, length(exStruct.wavesMetrics.cellCoherence) ,1)];
+        cellCoherenceCellNo = [cellCoherenceCellNo; exStruct.wavesMetrics.cellCoherence(:,1)];
+        cellCoherence = [cellCoherence; exStruct.wavesMetrics.cellCoherence(:,2)];
+
+        %% wave coherence metrics
+        waveCoherencePaths = [waveCoherencePaths ; repmat({currentExPath}, length(exStruct.wavesMetrics.waveCoherence) ,1)];
+        waveCoherenceWaveNo = [ waveCoherenceWaveNo ; (1:length(exStruct.wavesMetrics.waveCoherence))'];
+        waveCoherence = [waveCoherence; exStruct.wavesMetrics.waveCoherence'];
+
     else
 
         disp([currentExPath ' does not contain spikes field....moving on']);
@@ -103,6 +121,9 @@ grandTableSmall = table(exStructTablePathSmallSpikes, cellNoSmall,  spikeSmallNo
 meanTable = table(meanExStructPath, cellNoMean, firingRates, meanSpikeAmp);
 meanTableSmall = table(meanExStructPathSmallSpikes, cellNoMeanSmallSpikes, firingRatesSmallSpikes, meanSpikeAmpSmallSpikes);
 
+cellCoherenceTable = table(cellCoherencePaths, cellCoherenceCellNo, cellCoherence);
+waveCoherenceTable = table(waveCoherencePaths, waveCoherenceWaveNo, waveCoherence);
+
 % clean tables
 meanTable(meanTable.meanSpikeAmp == 0,:)=[];
 meanTableSmall(meanTableSmall.meanSpikeAmpSmallSpikes == 0,:)=[];
@@ -114,5 +135,7 @@ writetable(grandTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike G
 writetable(meanTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike Mean Table');
 writetable(grandTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Grand Table');
 writetable(meanTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Mean Table');
+writetable(cellCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Cell Coherence Table');
+writetable(waveCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Wave Coherence Table');
 
 end
