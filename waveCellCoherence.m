@@ -29,8 +29,8 @@ spikesSortedDiff = spikesSorted(2:end,1)-spikesSorted(1:end-1,1);
 
 % find wave breaks
 waveEnds = find(spikesSortedDiff>waveFrameLim);
-waveEnds(end+1) = length(spikesSorted);
-waveStarts = [1 ;waveEnds+1];
+waveEnds(end+1,1) = length(spikesSorted);
+waveStarts = [1 ; waveEnds+1];
 waveStarts = waveStarts(1:end-1);
 
 % align waves to spikes
@@ -53,8 +53,12 @@ spikesSorted(:,3) = waveIDs;
 
 %% calculate wave "coherence"
 
-for i = 1:max(waveIDs)
-    waveCoh(i) = sum(spikesSorted(:,3)==i)/length(unique(spikesSorted(:,2)));
+if sum(~isnan(waveIDs)) > 0
+    for i = 1:max(waveIDs)
+        waveCoh(i) = sum(spikesSorted(:,3)==i)/length(unique(spikesSorted(:,2)));
+    end
+else
+    waveCoh = [];
 end
 
 %% cell "coherence"

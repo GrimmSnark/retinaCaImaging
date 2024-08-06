@@ -29,6 +29,10 @@ waveCoherencePaths = [];
 waveCoherenceWaveNo = [];
 waveCoherence = [];
 
+zScoresPaths = [];
+zScoreCells = [];
+zScores = [];
+
 %% spike metrics
 spikeAmp = [];
 spikeWidth = [];
@@ -108,6 +112,10 @@ for i = 1:length(exStructPaths)
         waveCoherenceWaveNo = [ waveCoherenceWaveNo ; (1:length(exStruct.wavesMetrics.waveCoherence))'];
         waveCoherence = [waveCoherence; exStruct.wavesMetrics.waveCoherence'];
 
+
+        zScoresPaths = [zScoresPaths ; repmat({currentExPath}, length(exStruct.cells.zScore) ,1)];
+        zScoreCells = [zScoreCells ; (1:exStruct.cellCount)'];
+        zScores = [zScores; exStruct.cells.zScore];
     else
 
         disp([currentExPath ' does not contain spikes field....moving on']);
@@ -124,6 +132,9 @@ meanTableSmall = table(meanExStructPathSmallSpikes, cellNoMeanSmallSpikes, firin
 cellCoherenceTable = table(cellCoherencePaths, cellCoherenceCellNo, cellCoherence);
 waveCoherenceTable = table(waveCoherencePaths, waveCoherenceWaveNo, waveCoherence);
 
+
+zScoreTable = table(zScoresPaths,zScoreCells,zScores);
+
 % clean tables
 meanTable(meanTable.meanSpikeAmp == 0,:)=[];
 meanTableSmall(meanTableSmall.meanSpikeAmpSmallSpikes == 0,:)=[];
@@ -135,6 +146,7 @@ writetable(grandTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike G
 writetable(meanTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike Mean Table');
 writetable(grandTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Grand Table');
 writetable(meanTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Mean Table');
+writetable(zScoreTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Cell ZScores');
 writetable(cellCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Cell Coherence Table');
 writetable(waveCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Wave Coherence Table');
 

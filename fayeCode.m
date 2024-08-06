@@ -320,7 +320,10 @@ exStruct.spikesSmall.firingRate = firingRateSmall; % firing rate in spk/s
 exStruct.spikesSmall.meanSpikeAmp = meanAmpSmall; % mean spike dF amplitude
 
 %% Do the coherence metrics
-exStruct = waveCellCoherence(exStruct);
+
+if sum(exStruct.cells.zScoreThresholded) > 0
+    exStruct = waveCellCoherence(exStruct);
+else
 
 %% plot everything
 zscoreFig = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -361,18 +364,22 @@ for c= 1:exStruct.cellCount
     end
 end
 
-spikesSorted = exStruct.wavesMetrics.spikesSorted;
 % plot waves
-for d = 1:max(spikesSorted(:,3))
-    wavePoints = spikesSorted(spikesSorted(:,3)==d,:);
 
-    wavePoints(:,2) =  ((wavePoints(:,2))*0.4)-0.4;
-    wavePoints(:,3) = [];
-    wavePoints = sortrows(wavePoints,2);
+if sum(exStruct.cells.zScoreThresholded) > 0
 
-    plot(wavePoints(:,1)',wavePoints(:,2)', 'LineStyle',':');
+    spikesSorted = exStruct.wavesMetrics.spikesSorted;
+
+    for d = 1:max(spikesSorted(:,3))
+        wavePoints = spikesSorted(spikesSorted(:,3)==d,:);
+
+        wavePoints(:,2) =  ((wavePoints(:,2))*0.4)-0.4;
+        wavePoints(:,3) = [];
+        wavePoints = sortrows(wavePoints,2);
+
+        plot(wavePoints(:,1)',wavePoints(:,2)', 'LineStyle',':');
+    end
 end
-
 
 tightfig;
 
