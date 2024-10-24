@@ -323,7 +323,7 @@ exStruct.spikesSmall.meanSpikeAmp = meanAmpSmall; % mean spike dF amplitude
 
 if sum(exStruct.cells.zScoreThresholded) > 0
     exStruct = waveCellCoherence(exStruct);
-else
+end
 
 %% plot everything
 zscoreFig = figure('units','normalized','outerposition',[0 0 1 1]);

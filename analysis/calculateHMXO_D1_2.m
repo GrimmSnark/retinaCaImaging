@@ -1,4 +1,8 @@
 function calculateHMXO_D1_2(folderPath)
+% Calculates the D1/D2 ratio for HMOX-1 microglia stained retinal
+% wholemounts. Requires each image in the folder to be processed for to a
+% binary image with cells in black
+
 
 %% open FIJI
 % initalize MIJI

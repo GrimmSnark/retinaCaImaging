@@ -15,8 +15,8 @@ try  ij.IJ.getInstance().toFront();
 catch ME
     
     % Add ImageJ to working directory
-%     javaaddpath([matlabroot '\java\jar\mij.jar']);
-        javaaddpath([matlabroot '\java\jar\ij-1.53t.jar']);
+     javaaddpath([matlabroot '\java\jar\mij.jar']);
+        javaaddpath([matlabroot '\java\jar\ij-1.54f.jar']);
 %       javaaddpath([matlabroot '\java\jar\ij.jar']);
     
     % Add ImageJ plugins to the current path

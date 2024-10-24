@@ -1,6 +1,11 @@
 function prepRetinaCalciumWrapper(folderPath, fileStartNo, motionCorrFlag,  motionCorrectionType,  createDFPixelMovieFlag, zeroDFStack,  channelOrg)
-
-% Input- filePath: image data .nd2 file from FLAME system
+% This function runs prepRetinaCalcium on a full folder of recordings
+% See also: prepRetinaCalcium
+%
+% Input- folderPath- folder path which contains .nd2 files from FLAME 
+%                    system
+%
+%        fileStartNo - File number to start the wrapper on, DEFAULT == 1
 %
 %        motionCorrFlag- Flag do motion correction on raw images
 %
