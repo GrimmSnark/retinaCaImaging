@@ -13,18 +13,18 @@ RC = RM.getInstance();
 RC.reset();
 
 %% find the images we want to use ie 'mask'
-% maskFilepath = dir([folderPath '\*mask2*']);
-% 
-% if isempty(maskFilepath)
-%     maskFilepath = dir([folderPath '\*Mask2*']);
-% end
-
-maskFilepath = dir([folderPath '**\*mask*']);
+maskFilepath = dir([folderPath '\*mask2*']);
 
 if isempty(maskFilepath)
-    maskFilepath = dir([folderPath '**\*Mask*']);
+    maskFilepath = dir([folderPath '\*Mask2*']);
 end
 
+% maskFilepath = dir([folderPath '**\*mask*']);
+% 
+% if isempty(maskFilepath)
+%     maskFilepath = dir([folderPath '**\*Mask*']);
+% end
+% 
 
 for x = 1:length(maskFilepath)
     filePathTemp = maskFilepath(x);
@@ -44,8 +44,8 @@ for x = 1:length(maskFilepath)
     maskCentroid = vertcat(centroidStruct.Centroid);
 
     %% Get the optic nerve head and retinal bounds
-    RC.open([filePathTemp(1:end-9) '_ROIs.zip']);
-    % RC.open([filePathTemp(1:end-10) '_ROIs.zip']);
+    % RC.open([filePathTemp(1:end-9) '_ROIs.zip']);
+    RC.open([filePathTemp(1:end-18) '_ROIs.zip']);
 
     ROIobjects = RC.getRoisAsArray;
 
@@ -125,7 +125,7 @@ for x = 1:length(maskFilepath)
 
     %% save as excel
 
-    writetable(D1_2Table, [filePathTemp(1:end-9) '_D1_2_V2.xlsx']);
+    writetable(D1_2Table, [filePathTemp(1:end-9) '_D1_2_v2.xlsx']);
 
     RC.close
 end
