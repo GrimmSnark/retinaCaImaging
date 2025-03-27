@@ -1,4 +1,4 @@
-function subplotEvenAxes(figH, axis2Use)
+function subplotEvenAxes(figH, axis2Use, subs2Align)
 % Sets both X,Y,Z axes to be the same across an entire subplot image
 %
 % Inputs: figH - figure handle to even out
@@ -11,9 +11,23 @@ if nargin < 2 || isempty(axis2Use)
 end
 
 %% check if the handle is a figure
-if ishandle(figH) && findobj(figH,'type','figure')==figH
-    axH = findall(figH,'type','axes');
+if isgraphics(figH, 'axes')
+
+    axH = figH;
+
+elseif ishandle(figH) && findobj(figH,'type','figure')==figH
+
+    axH2 = findall(figH,'type','axes');
 end
+
+if nargin < 3 || isempty(subs2Align)
+    subplotInd = ones(size(axH));
+else
+    subplotInd = false(size(axH));
+    subplotInd(subs2Align) = 1;
+end
+
+axH = axH(subplotInd);
 
 %% X axis
 if axis2Use(1) == 1
