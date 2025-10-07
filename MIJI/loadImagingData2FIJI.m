@@ -19,14 +19,14 @@ intializeMIJ;
 
 %% gather data
 % check whether filepath is processed folder
-folder2Process = dir([filepath2Use '\**\experimentStructure.mat']);
+folder2Process = dir([filepath2Use '\**\*_ExStruct.mat']);
 
-% tries to fix if we happened to use the raw data path
-if isempty(folder2Process)
-    filePath = createSavePath(filepath2Use,1,1);
-    folder2Process = dir([filePath '\**\experimentStructure.mat']);
-end
-
+% % tries to fix if we happened to use the raw data path
+% if isempty(folder2Process)
+%     filePath = createSavePath(filepath2Use,1,1);
+%     folder2Process = dir([filePath '\**\experimentStructure.mat']);
+% end
+% 
 if isempty(folder2Process)
     folder2Process = filepath2Use;
     usingRawData  =1;
@@ -35,7 +35,7 @@ end
 if usingRawData ==0
     
     % load experimentStructure
-    load([folder2Process.folder '\experimentStructure.mat']);
+    load([folder2Process.folder '\*_ExStruct.mat']);
     
     % read in tiff file
     vol = read_Tiffs(experimentStructure.fullfile,1);

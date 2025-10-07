@@ -17,11 +17,12 @@ if isgraphics(figH, 'axes')
 
 elseif ishandle(figH) && findobj(figH,'type','figure')==figH
 
-    axH2 = findall(figH,'type','axes');
+    axH = findall(figH,'type','axes');
 end
 
 if nargin < 3 || isempty(subs2Align)
-    subplotInd = ones(size(axH));
+    % subplotInd = ones(size(axH))';
+    subplotInd = 1:length(axH);
 else
     subplotInd = false(size(axH));
     subplotInd(subs2Align) = 1;

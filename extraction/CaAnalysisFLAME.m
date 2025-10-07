@@ -46,12 +46,12 @@ exStruct = load(exStructPath);
 try
     exStruct = exStruct.exStruct;
 catch
-    exStruct = exStruct.metaData;
+    exStruct = exStruct.imageMetaData;
 end
 
 %% get filepath root
 filePathRoot = exStructPath(1:end-13);
-exStruct.filePath = [filePathRoot '.tif'];
+%exStruct.filePath = [filePathRoot '.tif'];
 % exStruct.filePath = filePathRoot;
 
 

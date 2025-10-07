@@ -119,7 +119,12 @@ end
 bfInitLogging();
 
 % Get the channel filler
-r = bfGetReader(id, stitchFiles);
+% r = bfGetReader(id, stitchFiles);
+r = bfGetReader();
+r = loci.formats.Memoizer(r);
+r.setId(id);
+r.close
+r.setId(id);
 
 % Test plane size
 if nargin >=4
@@ -215,8 +220,8 @@ for s = 1:numSeries
         end
 
         % save image plane and label into the list
-        imageList{i, 1} = arr;
-        imageList{i, 2} = label;
+        imageList{i,1} = arr;
+        imageList{i,2} = label;
     end
 
     % save images and metadata into our master series list
@@ -230,5 +235,6 @@ for s = 1:numSeries
     result{s, 3} = colorMaps;
     result{s, 4} = r.getMetadataStore();
     fprintf('\n');
-end
+
 r.close();
+end

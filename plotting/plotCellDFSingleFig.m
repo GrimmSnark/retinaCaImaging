@@ -51,9 +51,9 @@ for c = 1:cells.cellCount
     xlim([0 timeBase(end)]);
 
     ylabel('DF');
-    tightfig();
-
 end
+tightfig();
+
 
 saveas(figH,[fullfile(exStruct.filePath(1:end-4)) '_CellDFs.png']);
 

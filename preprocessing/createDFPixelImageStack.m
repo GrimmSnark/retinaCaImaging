@@ -1,4 +1,4 @@
-function [dFStack, metaData] = createDFPixelImageStack(imgStack, metaData)
+function [dFStack, imageMetaData] = createDFPixelImageStack(imgStack, imageMetaData)
 % creates a pixel-wise DF/F time series stack and adds DF/F matrix to
 % metaData structure
 %
@@ -12,19 +12,22 @@ function [dFStack, metaData] = createDFPixelImageStack(imgStack, metaData)
 % Outputs: dFStack - uint16 XYT image stack for display purposes (is
 %                    rescaled so not compariable for intensity values)
 %
-%          metaData - metaData structure with the original DF/F image stack
+%          imageMetaData - metaData structure with the original DF/F image stack
 %                     values as double array
 
 %% downsample  to make computation easier
-if metaData.image.pixelNum > 512
+
+intializeMIJ;
+
+if imageMetaData.image.pixelNum > 512
     for xx = 1:size(imgStack,3)
 
-        downSampleFactor = metaData.image.pixelNum/512;
+        downSampleFactor = imageMetaData.image.pixelNum/512;
         downSampleFactor = 1/downSampleFactor;
 
         % downsample to 512
         imStackResize(:,:,xx) = imresize(imgStack(:,:,xx), downSampleFactor);
-        metaData.downsampledRes = downSampleFactor * metaData.image.pixelSize;
+        imageMetaData.downsampledRes = downSampleFactor * imageMetaData.image.pixelSize;
     end
 else
     imStackResize = imgStack;
@@ -50,7 +53,7 @@ imStackLinear = reshape(imStackBleachCorr, [], size(imStackResize,3));
 %% process
 
 %% get the baseline traces
-framePeriod = metaData.framePeriod;
+framePeriod = imageMetaData.framePeriod;
 
 if gpuDeviceCount == 1
 
@@ -120,6 +123,6 @@ dF = (yBaselined-highpassFilteredTrace)./highpassFilteredTrace;
 dFRescale = uint16(rescale(dF)* 65536);
 dFStack = reshape(dFRescale, 512, 512, []);
 
-metaData.dF = reshape(dF, 512, 512, []); % save the actual dF/F signal for further analysis
+imageMetaData.dF = reshape(dF, 512, 512, []); % save the actual dF/F signal for further analysis
 
 end

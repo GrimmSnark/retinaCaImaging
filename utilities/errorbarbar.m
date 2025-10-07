@@ -7,16 +7,16 @@ function [b,e] = errorbarbar(x,y,E,barSettings,lineSettings)
 % bars and lineSettings. If you want to set only one of them, set the other
 % to empty.
 % Outputs b and e are the handles to the bar and the errorbar plotted.
-% 
-% NOTE: Currently does NOT support errorbar(x,y,L,U) directly. It is 
+%
+% NOTE: Currently does NOT support errorbar(x,y,L,U) directly. It is
 % possible as a trick using lineSettings appropriately.
-% 
+%
 %  See Also:
 %       bar, errorbar
-% 
+%
 %  Dependencies:
 %       No additional files are required.
-% 
+%
 
 % Created by Venn on 2009-JUL-13 (vennjr@u.northwestern.edu)
 % Modified:
@@ -42,7 +42,6 @@ else
     b = bar(x,y,barSettings{:});
 end
 
-
 %% get the xdata to plot the error plots
 c = b;
 ydata = zeros(size(E));
@@ -57,11 +56,27 @@ if strcmp(a,'stacked')
 else
     for i = 1:length(c)
         xdata(:,i) = get(c(i),'XData') + get(c(i),'XOffset');
-        try
-            ydata(:,i) = get(c(i),'YData');
-        catch
-            ydata(:,i) = get(c(i),'YData')';
+        ydata(:,i) = get(c(i),'YData')';
+    end
+end
+
+
+%% get the xdata to plot the error plots
+c = b;
+ydata = zeros(size(E));
+pause(0.1)
+a = c.BarLayout;
+if strcmp(a,'stacked')
+    for i = 1:length(c)
+        xdata(:,i) = get(c(i),'XData');
+        for j = 1:i
+            ydata(:,i) = ydata(:,i) + get(c(j),'YData')';
         end
+    end
+else
+    for i = 1:length(c)
+        xdata(:,i) = get(c(i),'XData') + get(c(i),'XOffset');
+        ydata(:,i) = get(c(i),'YData')';
     end
 end
 

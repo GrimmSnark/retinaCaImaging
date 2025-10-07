@@ -45,7 +45,9 @@ minFrameThreshold = 3;
 minAreaPercentChange = 0.15; % 25 percent
 
 %% load in dF movie
-tifStack = read_Tiffs(filepathDF);
+% tifStack = read_Tiffs(filepathDF);
+tifStack = tiffreadVolume(filepathDF);
+
 [folderPath, name] = fileparts(filepathDF);
 
 %% load in exStruct
@@ -56,7 +58,11 @@ try
     disp('In try loop');
     exStruct = exStruct.exStruct;
 catch
+    try
     exStruct = exStruct.metaData;
+    catch
+    exStruct = exStruct.imageMetaData;
+    end
 end
 
 % zero out pixel line around the edge of frame to remove artefact

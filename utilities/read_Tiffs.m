@@ -29,6 +29,7 @@ if(nargin<7 || isempty(codeVersion)), codeVersion     = 'Tiff';   end
 tic;
 
 disp(['Reading Image Stack - ' filePath]);
+warning('off','all');
 
 warning('OFF','imageio:tifftagsread:badTagValueDivisionByZero'); % supress common warning with this data type
 % Read TIF Header and Setup Information
@@ -95,7 +96,7 @@ switch codeVersion
             end
         end
         tifflib('close',FileID);
-        disp(['Finished Reading Image Stack - ' num2str(toc) ' seconds Elapsed']);
+        % disp(['Finished Reading Image Stack - ' num2str(toc) ' seconds Elapsed']);
         warning('ON','MATLAB:imagesci:tiffmexutils:libtiffWarning')
     case 'Tiff'
         warning('OFF','imageio:tiffmexutils:libtiffWarning');
@@ -130,6 +131,8 @@ switch codeVersion
             end
         end
 end
+
+warning('on','all');
 
 
 if(useWaitBar),close(h); end

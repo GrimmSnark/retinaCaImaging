@@ -1,4 +1,4 @@
-function metaData = getFLAMEMetaData(xmlStruct)
+function metaData = getFLAMEMetaData(xmlStruct, hashtable)
 % Grabs the metadata from the FLAME system into matlab format
 
 
@@ -40,6 +40,24 @@ end
 
 framePeriod = mean(diff(unique(frameTime)));
 fps = 1/framePeriod;
+%% HACK to fix missing frame times!!!!!!!!! 20250703
+% uses hashtable meta data instead...
+if isnan(framePeriod)
+    allKeys = arrayfun(@char, hashtable.keySet.toArray, 'UniformOutput', false);
+    allValues = cellfun(@(x) hashtable.get(x), allKeys, 'UniformOutput', false);
+    metaHashCell = cat(2,allKeys,allValues);
+
+    % metaHashCell(contains(metaHashCell(:,1),'Z pos'),:)=[];
+    flag = strcmp(metaHashCell(:,1), 'Global dDuration');
+    recDur = metaHashCell{flag,2}; % ms
+    recDur = recDur/1000; % sec
+
+    flag = strcmp(metaHashCell(:,1), 'Global Time Loop');
+    nFrames = str2double(metaHashCell{flag,2});
+
+    framePeriod = recDur / nFrames;
+    fps = 1/framePeriod;
+end
 
 %% compile into struct
 

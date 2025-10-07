@@ -1,4 +1,4 @@
-function [imStack, metaData] = readFLAMEData(filePath)
+function [imStack, imageMetaData] = readFLAMEData(filePath)
 % read in the .nd2 file from the FLAME system and make metadata structure
 %
 % Inputs: filePath - fullfile to nd2 file
@@ -8,19 +8,25 @@ function [imStack, metaData] = readFLAMEData(filePath)
 %          metaData - meta data structure extracted from nd2 file
 
 %% read in nd2 file
-imageStruct = bfopen2(filePath);
+% tic
+% imageStruct = bfopen2(filePath);
+% toc
+tic
+imageStruct = bfopen2_parallel(filePath);
+toc
 
 %% get the meta data
-try
+% try
     omeMeta = imageStruct{1, 4};
-    metaData = getFLAMEMetaData(omeMeta);
-    metaData.filePath = filePath;
-catch
-    clear javaclasspath
-    [metaData] = bfinfo(filePath);
-    metaData = metaData{1};
-    metaData.filePath = filePath;
-end
+    hashMeta = imageStruct{1, 2};
+    imageMetaData = getFLAMEMetaData(omeMeta, hashMeta);
+    imageMetaData.filePath = filePath;
+% catch
+%     clear javaclasspath
+%     [imageMetaData] = bfinfo(filePath);
+%     imageMetaData = metaData{1};
+%     imageMetaData.filePath = filePath;
+% end
 %% get the images
 imStack = imageStruct{1,1}(:,1);
 

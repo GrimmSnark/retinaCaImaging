@@ -55,7 +55,11 @@ function [reader omemd] = bfinit(filename)
         if(regexp(filename,'^\w\:\\', 'once')) % windows absolute path
             reader.setId(filename);
         else
-            reader.setId(fullfile(pwd, filename));
+            try
+                reader.setId(fullfile(pwd, filename));
+            catch
+                reader.setId(filename);
+            end
         end
     else
         if(filename(1) == '/') % unix absolute path

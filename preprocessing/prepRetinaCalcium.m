@@ -63,20 +63,21 @@ end
 
 noOfImagesForAlignment = 100; % number of brightest images used for motion correction template image
 
-
-intializeMIJ;
-
 %% get save folder locations
 [folderParts, name, ext ] = fileparts(filePath);
+
+if isempty(name)
+    name = 'e1';
+end
 
 %% read in image file
 if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
 %     profile on
-    [imStack, metaData] = readFLAMEData(filePath);
+    [imStack, imageMetaData] = readFLAMEData(filePath);
 
 %     profile viewer
     % split into channels
-    imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(metaData.colours.emWavelength), []);
+    imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(imageMetaData.colours.emWavelength), []);
     imStackCal = squeeze(imStack(:,:,calciumChan,:));
 
     imStackBV = [];
@@ -108,12 +109,18 @@ if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
     end
 
 else
-    imStackCal = read_Tiffs(filePath);
-    metaData = [];
-    metaData.filePath = filePath;
-    metaData.rate = 10;
-    metaData.image.pixelNum = size(imStackCal, 1);
-    metaData.image.pixelSize = 0.41;
+    % try if a single file, catch if folder
+    try
+        imStackCal = read_Tiffs(filePath);
+    catch
+        imStackCal = readMultipageTifFiles(filePath);
+    end
+
+    imageMetaData = [];
+    imageMetaData.filePath = filePath;
+    imageMetaData.rate = 10;
+    imageMetaData.image.pixelNum = size(imStackCal, 1);
+    imageMetaData.image.pixelSize = 0.41;
 end
 
 
@@ -130,18 +137,18 @@ if motionCorrFlag == 1
     templateImageForReg = uint16(mean(imStackCal(:,:,imageBrightnessIndx(1:noOfImagesForAlignment-1)),3));
 
     disp(['Starting image registration using ' motionCorrectionType ]);
-    [imStackCal,xyShifts, options_nonrigid] = imageRegistration(imStackCal,motionCorrectionType, metaData.image.pixelSize, [], templateImageForReg);
-    metaData.xyShifts = xyShifts;
-    metaData.options_nonrigid = options_nonrigid;
+    [imStackCal,xyShifts, options_nonrigid] = imageRegistration(imStackCal,motionCorrectionType, imageMetaData.image.pixelSize, [], templateImageForReg);
+    imageMetaData.xyShifts = xyShifts;
+    imageMetaData.options_nonrigid = options_nonrigid;
 else
-    metaData.xyShifts = [];
-    metaData.options_nonrigid = [];
+    imageMetaData.xyShifts = [];
+    imageMetaData.options_nonrigid = [];
 end
 
 %% create DF/F image stack
 
 if createDFPixelMovieFlag == 1
-    [dFStack, metaData] = createDFPixelImageStack(imStackCal, metaData);
+    [dFStack, imageMetaData] = createDFPixelImageStack(imStackCal, imageMetaData);
 
     % zero out the minus values if flag
     if zeroDFStack
@@ -158,10 +165,11 @@ if createDFPixelMovieFlag == 1
 end
 %% save meta and SD image
 
-save(fullfile(folderParts, [name '_ExStruct.mat']), 'metaData', '-v7.3');
+save(fullfile(folderParts, [name '_ExStruct.mat']), 'imageMetaData', '-v7.3');
 
 % clean up a little
-clear metaData
+clear imageMetaData
+
 
 if gpuDeviceCount == 1 % tries for GPU  version, which will only work if nvidia CUDA installed
     imageSD = stdGPU(imStackCal);

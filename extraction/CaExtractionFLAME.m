@@ -50,9 +50,14 @@ if strcmp(ext, '.nd2')
     % split into channels
     imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(exStruct.colours.emWavelength), []);
     vol = squeeze(imStack(:,:,channel2Use,:));
+    imStack = [];
 
 else
-    vol = read_Tiffs(exStruct.filePath);
+    try
+        vol = read_Tiffs(exStruct.filePath);
+    catch
+        vol = readMultipageTifFiles(exStruct.filePath);
+    end
 end
 
 

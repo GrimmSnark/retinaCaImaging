@@ -1,4 +1,8 @@
-function plotRelativeDisWaveStarts(exStructPath)
+function plotRelativeDisWaveStarts(exStructPath, useDiologue )
+
+if nargin <2 || isempty(useDiologue)
+    useDiologue = 1;
+end
 
 %% load in exStruct
 exStruct = load(exStructPath);
@@ -7,7 +11,13 @@ disp('Loaded in exStruct.mat')
 try
     exStruct = exStruct.exStruct;
 catch
-    exStruct = exStruct.metaData;
+    
+    try
+        exStruct = exStruct.metaData;
+    catch
+        exStruct = exStruct.imageMetaData;
+
+    end
 end
 
 %% open FIJI
@@ -20,7 +30,9 @@ RC.reset();
 
 %% load in images
 SD_imagePath = dir([exStructPath(1:end-13) '_dF_SD.tif']);
-SD_image = read_Tiffs(fullfile(SD_imagePath.folder,SD_imagePath.name));
+% SD_image = read_Tiffs(fullfile(SD_imagePath.folder,SD_imagePath.name));
+SD_image = tiffreadVolume(fullfile(SD_imagePath.folder,SD_imagePath.name));
+
 
 
 if ~isfield(exStruct.waves, 'relDistanceTab')
@@ -37,37 +49,39 @@ if ~isfield(exStruct.waves, 'relDistanceTab')
 
     %% choose ROI shapes for cluster cells
 
-    % Sets up diolg box to allow for user input to choose cell ROIs
-    opts.Default = 'Continue';
-    opts.Interpreter = 'tex';
+    if useDiologue == 1
+        % Sets up diolg box to allow for user input to choose cell ROIs
+        opts.Default = 'Continue';
+        opts.Interpreter = 'tex';
 
-    questText = [{'Draw ROIs around the optic nerve head and retina'} ...
-        {'Add ROI to ROI Manager by "t" for optic nerve head then retina'} {''} ...
-        {'If you are happy to move on with analysis click  \bfContinue\rm'} ...
-        {'Or click  \bfExit Script\rm or X out of this window to exit script'}];
+        questText = [{'Draw ROIs around the optic nerve head and retina'} ...
+            {'Add ROI to ROI Manager by "t" for optic nerve head then retina'} {''} ...
+            {'If you are happy to move on with analysis click  \bfContinue\rm'} ...
+            {'Or click  \bfExit Script\rm or X out of this window to exit script'}];
 
-    response = questdlg(questText, ...
-        'Check and choose ROIs', ...
-        'Continue', ...
-        'Exit Script', ...
-        opts);
+        response = questdlg(questText, ...
+            'Check and choose ROIs', ...
+            'Continue', ...
+            'Exit Script', ...
+            opts);
 
 
-    % deals with repsonse
-    switch response
+        % deals with repsonse
+        switch response
 
-        case 'Continue' % if continue, goes on with analysis
-            ROInumber = RC.getCount();
-            disp(['You have selected ' num2str(ROInumber) ' ROIs, moving on...']);
+            case 'Continue' % if continue, goes on with analysis
+                ROInumber = RC.getCount();
+                disp(['You have selected ' num2str(ROInumber) ' ROIs, moving on...']);
 
-        case 'Exit Script' % if you want to exit and end
-            killFlag = 1;
-            return
-        case ''
-            killFlag = 1; % if you want to exit and end
-            return
+            case 'Exit Script' % if you want to exit and end
+                killFlag = 1;
+                return
+            case ''
+                killFlag = 1; % if you want to exit and end
+                return
+        end
+
     end
-
     %% create ROI image
     ROIobjects = RC.getRoisAsArray;
     pixelIm = stackImpSD.getWidth;
@@ -141,13 +155,13 @@ for w = 1:length(exStruct.waves.centerPerFrame)
     BVEdgePos(w,:) = inBV(indUsed,:);
 
     % use this to check calculations
-%     g = imshow(imadjust(SD_image));
-%     hold on
-%     plot(retinaBoundShape)
-%     plot(BV_shape)
-%     scatter(opticNerveCentroid(1), opticNerveCentroid(2));
-%     scatter(waveStarts(w,1), waveStarts(w,2));
-%     plot(line2Use(:,1),line2Use(:,2),'b',line2UseBV(:,1),line2UseBV(:,2),'r');
+    %     g = imshow(imadjust(SD_image));
+    %     hold on
+    %     plot(retinaBoundShape)
+    %     plot(BV_shape)
+    %     scatter(opticNerveCentroid(1), opticNerveCentroid(2));
+    %     scatter(waveStarts(w,1), waveStarts(w,2));
+    %     plot(line2Use(:,1),line2Use(:,2),'b',line2UseBV(:,1),line2UseBV(:,2),'r');
 
 end
 
@@ -163,7 +177,8 @@ relDistanceTab.D1_3 = relDistanceTab.distFromCenter./relDistanceTab.center2BVEdg
 
 %% Calculate Blood Vessel D1/2
 
-BV_poly = exStruct.waves.BV_poly;
+% BV_poly = exStruct.waves.BV_poly;
+BV_poly = exStruct.waves.BV_Position;
 for i=1:length(BV_poly)
 
     % fit line through retinal centre and BV vertex position through to

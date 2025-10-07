@@ -36,7 +36,7 @@ RC = RM.getInstance();
 exStruct = load(exStructPath);
 
 try
-    exStruct = exStruct.metaData;
+    exStruct = exStruct.imageMetaData;
 catch
     exStruct = exStruct.exStruct;
 end
