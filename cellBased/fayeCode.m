@@ -9,9 +9,12 @@ function fayeCode(exStructPath)
 
 %% defaults
 
-zscoreLim = 20;
+zscoreLim = 12;
 % sIQRLim = 0.04;
 frameDiffLimit = 10; % frame closeness limit for small and big spikes
+% plotOffset = 0.4;
+plotOffset = 0.2;
+
 
 %% load exStruct
 
@@ -31,6 +34,7 @@ exStruct.spikes = [];
 
 for c= 1:exStruct.cellCount
     dFTrace = exStruct.cells.dF(c,:);
+    dFTrace = sgolayfilt(dFTrace,5,exStruct.rate+1);
 
     %% zscore
     [zScore(c,1), sIQR(c,1) ]= dF_zscore(dFTrace);
@@ -46,7 +50,8 @@ for c= 1:exStruct.cellCount
 
     % spike detection
     %     [spikeAmp{c},spikeLocs{c},spikeWidths{c}] = findpeaks(dFTrace, "MinPeakProminence",minProm);
-    [spikeAmp{c},spikeLocs{c},spikeWidths{c}] = findpeaks(dFTrace,"MinPeakHeight",0.1, "MinPeakProminence",minProm);
+    [spikeAmp{c},spikeLocs{c},spikeWidths{c}] = findpeaks(dFTrace, "MinPeakProminence",dF_SD/2);
+    
 
     % get tau rise time and decay
     if ~isempty(spikeLocs{c})
@@ -333,8 +338,8 @@ axis tight
 %% plot based on zcore
 for c= 1:exStruct.cellCount
 
-    dFTracePlot = exStruct.cells.dF(c,:) + (c-1)*0.4;
-    offsetVals(c) = (c-1)*0.4;
+    dFTracePlot = exStruct.cells.dF(c,:) + (c-1)*plotOffset;
+    offsetVals(c) = (c-1)*plotOffset;
 
     if zScore(c) > zscoreLim
         plot(zscoreAx,dFTracePlot)
@@ -373,7 +378,7 @@ if sum(exStruct.cells.zScoreThresholded) > 0
     for d = 1:max(spikesSorted(:,3))
         wavePoints = spikesSorted(spikesSorted(:,3)==d,:);
 
-        wavePoints(:,2) =  ((wavePoints(:,2))*0.4)-0.4;
+        wavePoints(:,2) =  ((wavePoints(:,2))*plotOffset)-plotOffset;
         wavePoints(:,3) = [];
         wavePoints = sortrows(wavePoints,2);
 

@@ -33,8 +33,8 @@ try
 		% Didn't find any.  Lower the threshold to absolute zero and try again.
 		nonZeroBins = find(pixelCounts > 0);
 		if isempty(nonZeroBins)
-			warningMessage = sprintf('Could not find a threshold value.\nNo counts were found in the histogram');
-			uiwait(warndlg(warningMessage));
+			% warningMessage = sprintf('Could not find a threshold value.\nNo counts were found in the histogram');
+			% uiwait(warndlg(warningMessage));
 			return;
 		end
 	end

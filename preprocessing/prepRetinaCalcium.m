@@ -127,6 +127,11 @@ end
 %% motion correction
 
 if motionCorrFlag == 1
+
+    ops.source_path = metaData.filePath;
+    ops.save_path = metaData.filePath;
+    patchwarp(ops);
+
     % we want to use the brightness average
     % get image brightness in stack
     imageBrightness = squeeze(mean(imStackCal,[1,2]));

@@ -32,7 +32,7 @@ if nargin < 2 || isempty(fileStartNo)
 end
 
 if nargin < 3 || isempty(motionCorrFlag)
-    motionCorrFlag = 0;
+    motionCorrFlag = 1;
 end
 
 if nargin < 4 || isempty(motionCorrectionType)

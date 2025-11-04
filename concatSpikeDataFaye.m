@@ -1,11 +1,14 @@
-function concatSpikeDataFaye()
+function concatSpikeDataFaye(exStructFolder)
 % pulls all the spike data into a single excel sheet
 
-%  [path] = uigetdir('', 'Pick a Directory');
-[path] = '\\campus\rdw\ion10\10\retina\data\Savage\calcium\Faye\July 2024 files';
+if nargin < 1 || isempty(exStructFolder)
+
+ [exStructFolder] = uigetdir('', 'Pick a Directory');
+% [path] = '\\campus\rdw\ion10\10\retina\data\Savage\calcium\Faye\July 2024 files';
+end
 
 
-exStructPaths = dir([path '\**\*exStruct.mat']);
+exStructPaths = dir([exStructFolder '\**\*exStruct.mat']);
 
 disp(['Found ' num2str(length(exStructPaths)) ' experiment folders, moving on....'])
 
@@ -14,12 +17,6 @@ meanSpikeAmp = [];
 meanExStructPath = [];
 cellNoMean = [];
 exStructTablePath = [];
-
-firingRatesSmallSpikes = [];
-meanSpikeAmpSmallSpikes = [];
-meanExStructPathSmallSpikes = [];
-cellNoMeanSmallSpikes = [];
-exStructTablePathSmallSpikes = [];
 
 cellCoherencePaths =[];
 cellCoherenceCellNo =[];
@@ -40,13 +37,8 @@ riseTime = [];
 decayTime = [];
 cellNo = [];
 spikeNo = [];
+waveInclusion = [];
 
-spikeSmallAmp = [];
-spikeSmallWidth = [];
-riseTimeSmall = [];
-decayTimeSmall = [];
-cellNoSmall = [];
-spikeSmallNo = [];
 
 % for all exStructs
 for i = 1:length(exStructPaths)
@@ -54,56 +46,40 @@ for i = 1:length(exStructPaths)
     currentExPath = fullfile(exStructPaths(i).folder, exStructPaths(i).name);
 
     load(currentExPath);
+    zInclude = exStruct.cells.zScoreThresholded; % filter by z score 
 
     if isfield(exStruct, 'spikes')
         for c = 1:exStruct.cellCount
 
-            % large spike stuff
-            currAmps = exStruct.spikes.spikeAmp{c}';
-            currWidths = exStruct.spikes.spikeWidths{c}';
-            currRise = exStruct.spikes.riseTime{c}';
-            currDecay = exStruct.spikes.decayTime{c}';
-            currCell = repmat(c,1,length(currDecay))';
-
-            spikeAmp = [spikeAmp ;currAmps];
-            spikeWidth = [ spikeWidth; currWidths];
-            riseTime = [riseTime; currRise];
-            decayTime = [decayTime ; currDecay];
-            cellNo = [cellNo ;currCell];
-            spikeNo = [spikeNo; (1:length(currCell))'];
-
-
-            % small spike stuff
-            currAmpsSmall = exStruct.spikesSmall.spikeAmp{c}';
-            currWidthsSmall = exStruct.spikesSmall.spikeWidths{c}';
-            currRiseSmall = exStruct.spikesSmall.riseTime{c}';
-            currDecaySmall = exStruct.spikesSmall.decayTime{c}';
-            currCellSmall = repmat(c,1,length(currDecaySmall))';
-
-            spikeSmallAmp = [spikeSmallAmp ;currAmpsSmall];
-            spikeSmallWidth = [ spikeSmallWidth; currWidthsSmall];
-            riseTimeSmall = [riseTimeSmall; currRiseSmall];
-            decayTimeSmall = [decayTimeSmall ; currDecaySmall];
-            cellNoSmall = [cellNoSmall ;currCellSmall];
-            spikeSmallNo = [spikeSmallNo; (1:length(currCellSmall))'];
+            if exStruct.cells.zScoreThresholded(c) == 1
+                % large spike stuff
+                currAmps = exStruct.spikes.spikeAmp{c}';
+                currWidths = exStruct.spikes.spikeWidths{c}';
+                currRise = exStruct.spikes.riseTime{c}';
+                currDecay = exStruct.spikes.decayTime{c}';
+                currCell = repmat(c,1,length(currDecay))';
+                waveInclusionTemp = exStruct.wavesMetrics.spikesSorted(exStruct.wavesMetrics.spikesSorted(:,2)==c,3); % wave inclusion per spike
+            
+                spikeAmp = [spikeAmp ;currAmps];
+                spikeWidth = [ spikeWidth; currWidths];
+                riseTime = [riseTime; currRise];
+                decayTime = [decayTime ; currDecay];
+                cellNo = [cellNo ;currCell];
+                spikeNo = [spikeNo; (1:length(currCell))'];
+                waveInclusion = [waveInclusion; waveInclusionTemp];
+            end
         end
 
-        exStructTablePath = [exStructTablePath ;repmat({currentExPath}, length([exStruct.spikes.spikeAmp{:}]),1)];
-        exStructTablePathSmallSpikes = [exStructTablePathSmallSpikes ;repmat({currentExPath}, length([exStruct.spikesSmall.spikeAmp{:}]),1)];
-
+        tempSpikeNum = length([exStruct.spikes.spikeAmp{exStruct.cells.zScoreThresholded}]); % gives number of spikes from zScore thresholded cells
+        exStructTablePath = [exStructTablePath ;repmat({currentExPath}, tempSpikeNum,1)];
         %% mean metrics
-        meanExStructPath = [meanExStructPath ;repmat({currentExPath}, exStruct.cellCount,1)];
-        cellNoMean = [cellNoMean; (1: exStruct.cellCount)'];
-        firingRates = [firingRates; exStruct.spikes.firingRate' ];
-        meanSpikeAmp = [meanSpikeAmp; exStruct.spikes.meanSpikeAmp'];
-
-        meanExStructPathSmallSpikes = [meanExStructPathSmallSpikes ;repmat({currentExPath}, exStruct.cellCount,1)];
-        cellNoMeanSmallSpikes = [cellNoMeanSmallSpikes; (1: exStruct.cellCount)'];
-        firingRatesSmallSpikes = [firingRatesSmallSpikes; exStruct.spikesSmall.firingRate' ];
-        meanSpikeAmpSmallSpikes = [meanSpikeAmpSmallSpikes; exStruct.spikesSmall.meanSpikeAmp'];
+        meanExStructPath = [meanExStructPath ;repmat({currentExPath}, sum(zInclude),1)];
+        cellNoMean = [cellNoMean; find(exStruct.cells.zScoreThresholded)];
+        firingRates = [firingRates; exStruct.spikes.firingRate(zInclude)' ];
+        meanSpikeAmp = [meanSpikeAmp; exStruct.spikes.meanSpikeAmp(zInclude)'];
 
         %% cell coherence metrics
-        cellCoherencePaths = [cellCoherencePaths ;repmat({currentExPath}, length(exStruct.wavesMetrics.cellCoherence) ,1)];
+        cellCoherencePaths = [cellCoherencePaths ;repmat({currentExPath}, sum(zInclude) ,1)];
         cellCoherenceCellNo = [cellCoherenceCellNo; exStruct.wavesMetrics.cellCoherence(:,1)];
         cellCoherence = [cellCoherence; exStruct.wavesMetrics.cellCoherence(:,2)];
 
@@ -123,11 +99,11 @@ for i = 1:length(exStructPaths)
 
 end
 
-grandTable = table(exStructTablePath, cellNo,  spikeNo, spikeAmp, spikeWidth, riseTime, decayTime);
-grandTableSmall = table(exStructTablePathSmallSpikes, cellNoSmall,  spikeSmallNo, spikeSmallAmp, spikeSmallWidth, riseTimeSmall, decayTimeSmall);
+grandTable = table(exStructTablePath, cellNo,  spikeNo, spikeAmp, spikeWidth, riseTime, decayTime, waveInclusion);
+grandTableSyncedSpikes = grandTable(grandTable.waveInclusion >0,:);
+grandTableAsynchedSpikes = grandTable(grandTable.waveInclusion ==0,:);
 
 meanTable = table(meanExStructPath, cellNoMean, firingRates, meanSpikeAmp);
-meanTableSmall = table(meanExStructPathSmallSpikes, cellNoMeanSmallSpikes, firingRatesSmallSpikes, meanSpikeAmpSmallSpikes);
 
 cellCoherenceTable = table(cellCoherencePaths, cellCoherenceCellNo, cellCoherence);
 waveCoherenceTable = table(waveCoherencePaths, waveCoherenceWaveNo, waveCoherence);
@@ -137,15 +113,13 @@ zScoreTable = table(zScoresPaths,zScoreCells,zScores);
 
 % clean tables
 meanTable(meanTable.meanSpikeAmp == 0,:)=[];
-meanTableSmall(meanTableSmall.meanSpikeAmpSmallSpikes == 0,:)=[];
-
 
 % saving
 
-writetable(grandTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike Grand Table');
-writetable(meanTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Big Spike Mean Table');
-writetable(grandTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Grand Table');
-writetable(meanTableSmall, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Small Spike Mean Table');
+writetable(grandTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Spike Grand Table');
+writetable(grandTableSyncedSpikes,fullfile(path, '\summaryExcel.xlsx'),'Sheet','Synced Spike Grand Table');
+writetable(grandTableAsynchedSpikes, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Synced Spike Grand Table');
+writetable(meanTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Spike Mean Table');
 writetable(zScoreTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Cell ZScores');
 writetable(cellCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Cell Coherence Table');
 writetable(waveCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Wave Coherence Table');

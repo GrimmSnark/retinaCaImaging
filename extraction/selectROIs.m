@@ -9,6 +9,8 @@ function selectROIs(exStructPath)
 
 %% set default
 
+openTiffStack = 1;
+
 killFlag = 0;
 
 if nargin < 1 || isempty(exStructPath)
@@ -81,6 +83,10 @@ end
 
 %% open image in FIJI
 MIJ.createImage(imageROI);
+
+if openTiffStack == 1
+    ij.IJ.open(exStruct.filePath);
+end
 
 pause(0.2);
 ij.IJ.run('Set... ', ['zoom=' num2str(magSize) ' x=10 y=50']);

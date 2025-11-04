@@ -1,10 +1,10 @@
-function [riseTime, decayTime, riseThreshIndxRelative, fallThreshIndx] = riseTimeDecayFinderTriangle(riseSample, fallSample, rate)
+function [riseTime, decayTime, riseThreshIndxRelative, fallThreshIndx] = riseTimeDecayFinderTriangle(sample, peakIndex, rate)
 % Function tries to find rise time and tau decay for calcium events.
-% Heavily based on triangle thresholding. 
+% Heavily based on triangle thresholding.
 % https://www.mathworks.com/matlabcentral/answers/250257-find-turning-point-in-data
 %
 % Written by Michael Savage (michael.savage2@ncl.ac.uk)
-% 
+%
 % Inputs: riseSample - calcium trace leading up to spike peak
 %
 %         fallSample - calcium trace from peak to decay afterwards
@@ -23,31 +23,69 @@ function [riseTime, decayTime, riseThreshIndxRelative, fallThreshIndx] = riseTim
 %% data processing
 
 % smooth data
-riseSampleSm = smoothdata(riseSample);
-fallSampleSm = smoothdata(fallSample);
+% riseSampleSm = smoothdata(sample);
+% fallSampleSm = smoothdata(fallSample);
 
 % get the elbow points
-riseThreshIndx = triangle_threshold(riseSampleSm, 'L',0)-1;
-% [~, fallThreshIndx] = min(fallSampleSm);
-fallThreshIndx = triangle_threshold(fallSampleSm, 'R',0)+5;
+riseThreshIndx = triangle_threshold(sample(1:peakIndex), 'L',0)-1;
 
+if riseThreshIndx ==0
+    riseThreshIndx = 1;
+end
+
+% smooth fall sample
+fallSample = smoothdata(sample(peakIndex:end),1,"gaussian",3);
+ft = fittype('a*exp(-b*t) + c','indep','t');
+
+warning("off", 'all');
+% try some exp fits
+try
+    [f, g] = fit( [1:length(fallSample)]', fallSample', ft);
+catch
+    [f, g] = fit( [1:length(fallSample)]', fallSample', 'exp1');
+end
+
+% if bad fit cut the fallsample in two (bad fit is ususally two peaks in
+% the sample)
+if g.rsquare < 0.7
+    newInd = round(length(fallSample)/2);
+    [f, g] = fit( [1:newInd]', fallSample(1:newInd)', 'exp1');
+end
+
+warning("on", 'all');
+
+% no idea why this works....but it does
+if f.b < 0
+tt = round(-1/f.b) +5;
+else
+tt = round(1/f.b) +5;
+end
+
+% subplot(211)
+% plot(f,[1:length(fallSample)], fallSample)
+% title(gca, [ ' R-Squared: ' num2str(g.rsquare)] )
+
+if isempty(tt)
+    disp('Could not find local minima, defauting to end of peak trace')
+tt = triangle_threshold(sample(peakIndex:end), 'R',0)+5;
+end
+
+fallThreshIndx = tt+peakIndex;
 
 % make riseThresholdINdx relative to the peak index
-riseThreshIndxRelative = (length(riseSample)- riseThreshIndx);
+riseThreshIndxRelative = (length(1:peakIndex)- riseThreshIndx);
 
 
-%% uncomment for plotting
-% subplot(211)
-% plot(riseSampleSm)
+%% uncomment for plotting 
+% subplot(212);
+% plot(sample)
 % hold on
-% scatter(riseThreshIndx,riseSampleSm(riseThreshIndx));
-% hold off
-% 
-% subplot(212)
-% plot(fallSampleSm)
-% hold on
-% plot(gradient(fallSampleSm))
-% scatter(fallThreshIndx,fallSampleSm(fallThreshIndx));
+% scatter(riseThreshIndx,sample(riseThreshIndx));
+% try
+%     scatter(tt+peakIndex,sample(tt+peakIndex));
+% catch
+%     scatter(length(sample),sample(end));
+% end
 % hold off
 
 % work out actual times etc

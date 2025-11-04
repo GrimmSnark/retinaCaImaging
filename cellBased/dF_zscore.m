@@ -9,8 +9,8 @@ function [zScore, sIQR] = dF_zscore(dF)
 % bottom10 = dF_rezeroed(dF_rezeroed<= percentile10 );
 % top10 = dF_rezeroed(dF_rezeroed>= percentile90 );
 
-baselinePercentile= prctile(dF, 20);
-signalPercentile = prctile(dF, 99);
+baselinePercentile= prctile(dF, 15);
+signalPercentile = prctile(dF, 90);
 
 baseline = dF(dF<= baselinePercentile );
 signal = dF(dF>= signalPercentile );

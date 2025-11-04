@@ -33,7 +33,7 @@ function [signalTrace,neuropCorrPars]=estimateNeuropil(cellRoiTrace,neuropRoiTra
 
 
 if nargin<3 || ~isfield(opt, 'numN')
-    numN=20; 
+    numN=40; 
 else
     numN=opt.numN;
 end
@@ -43,7 +43,8 @@ else
     minNp=opt.minNp;
 end
 if nargin<3 || ~isfield(opt, 'maxNp')
-    maxNp=90;
+    % maxNp=90;
+    maxNp=80;
 else
     maxNp=opt.maxNp;
 end

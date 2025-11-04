@@ -13,7 +13,7 @@ for i =1:length(exStructPaths)
     currentExPath = fullfile(exStructPaths(i).folder, exStructPaths(i).name);
 
     try
-    fayeCode(currentExPath);
+    spikeExtraction_v2(currentExPath);
 
     % uncomment this if you want to close every figure after each mat file processed
     % close

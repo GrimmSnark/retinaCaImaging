@@ -3,23 +3,18 @@ function exStruct = waveCellCoherence(exStruct)
 %% defaults
 
 waveFrameLim = 5;
-spikeNo4Waves = 3;
+spikeNo4Waves = 2;
 
 %%
 % unwrap all spikes and match up cell IDs
-spikesBig = exStruct.spikes;
-spikesSmall = exStruct.spikesSmall;
+spikes = exStruct.spikes;
 
 spikeUnwrapped = [];
-for i =1:length(spikesBig.spikeLocs)
+for i =1:length(spikes.spikeLocs)
     if exStruct.cells.zScoreThresholded(i) == 1
-        tempSpikes = spikesBig.spikeLocs{i}';
+        tempSpikes = spikes.spikeLocs{i}';
         tempSpikes(:,2) = ones(length(tempSpikes),1)*i;
         spikeUnwrapped = [spikeUnwrapped;tempSpikes];
-
-        tempSpikesSmall = rmmissing(spikesSmall.spikeLocs{i}');
-        tempSpikesSmall(:,2) = ones(length(tempSpikesSmall),1)*i;
-        spikeUnwrapped = [spikeUnwrapped;tempSpikesSmall];
     end
 end
 
@@ -48,6 +43,7 @@ end
 
 uniqueNums = rmmissing(unique(waveIDs));
 waveIDs = changem(waveIDs,1:length(uniqueNums),uniqueNums);
+waveIDs(isnan(waveIDs))= 0;
 
 spikesSorted(:,3) = waveIDs;
 
