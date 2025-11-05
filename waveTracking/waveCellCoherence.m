@@ -70,7 +70,7 @@ for i = 1:length(cellNums)
         tempCellSpikes = spikesSorted(:,2)==tempCellNum;
         tempSpikeList = spikesSorted(tempCellSpikes,:);
         cellCoherence(count,1)= tempCellNum;
-        cellCoherence(count,2)= 1 - (sum(isnan(tempSpikeList(:,3)))/length(tempSpikeList));
+        cellCoherence(count,2)= 1 - (sum(~(tempSpikeList(:,3)))/length(tempSpikeList));
         count = count+1;
     end
 end
