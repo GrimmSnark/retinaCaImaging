@@ -116,12 +116,12 @@ meanTable(meanTable.meanSpikeAmp == 0,:)=[];
 
 % saving
 
-writetable(grandTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Spike Grand Table');
-writetable(grandTableSyncedSpikes,fullfile(path, '\summaryExcel.xlsx'),'Sheet','Synced Spike Grand Table');
-writetable(grandTableAsynchedSpikes, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Synced Spike Grand Table');
-writetable(meanTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Spike Mean Table');
-writetable(zScoreTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Cell ZScores');
-writetable(cellCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Cell Coherence Table');
-writetable(waveCoherenceTable, fullfile(path, '\summaryExcel.xlsx'),'Sheet','Wave Coherence Table');
+writetable(grandTable, fullfile(exStructFolder, '\summaryExcel.xlsx'),'Sheet','Spike Grand Table');
+writetable(grandTableSyncedSpikes,fullfile(exStructFolder, '\summaryExcel.xlsx'),'Sheet','Synced Spike Grand Table');
+writetable(grandTableAsynchedSpikes, fullfile(exStructFolder, '\summaryExcel.xlsx'),'Sheet','Asynced Spike Grand Table');
+writetable(meanTable, fullfile(exStructFolder, '\summaryExcel.xlsx'),'Sheet','Spike Mean Table');
+writetable(zScoreTable, fullfile(exStructFolder, '\summaryExcel.xlsx'),'Sheet','Cell ZScores');
+writetable(cellCoherenceTable, fullfile(exStructFolder, '\summaryExcel.xlsx'),'Sheet','Cell Coherence Table');
+writetable(waveCoherenceTable, fullfile(exStructFolder, '\summaryExcel.xlsx'),'Sheet','Wave Coherence Table');
 
 end
