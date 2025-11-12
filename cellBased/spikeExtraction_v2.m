@@ -11,8 +11,9 @@ function spikeExtraction_v2(exStructPath)
 %% defaults
 
 zscoreLim = 12;
+minPeakThresh = 0.001;
 % sIQRLim = 0.04;
-plotOffset = 0.2;
+plotOffset = 0.1;
 
 
 %% load exStruct
@@ -30,10 +31,12 @@ exStruct.cells.zscoreLim = zscoreLim;
 
 %% analyse each cell
 exStruct.spikes = [];
+exStruct.rate = round(exStruct.fps);
 
 for c= 1:exStruct.cellCount
     dFTrace = exStruct.cells.dF(c,:);
-    dFTrace = sgolayfilt(dFTrace,5,exStruct.rate+1);
+    % dFTrace = sgolayfilt(dFTrace,5,exStruct.rate+1);
+    dFTrace = sgolayfilt(dFTrace,5,11);
 
     %% zscore
     [zScore(c,1), sIQR(c,1) ]= dF_zscore(dFTrace);
@@ -45,13 +48,13 @@ for c= 1:exStruct.cellCount
 
     dF_SD = std(dFTrace);
     % spike detection
-    [spikeAmp{c},spikeLocs{c},spikeWidths{c}] = findpeaks(dFTrace, "MinPeakProminence",dF_SD/2);
+    [spikeAmp{c},spikeLocs{c},spikeWidths{c}] = findpeaks(dFTrace,'MinPeakHeight', minPeakThresh , "MinPeakProminence",dF_SD/2);
 
 
     % get tau rise time and decay
     % if ~isempty(spikeLocs{c}) && zScore(c) > zscoreLim
     if ~isempty(spikeLocs{c}) && zScore(c)
-        
+
         % for each spike
         for sp = 1:length(spikeLocs{c})
 
@@ -168,8 +171,8 @@ for c= 1:exStruct.cellCount
         catch
         end
     else
-        plot(zscoreAx,dFTracePlot, '--','Color', [0.5 0.5 0.5]);
-        text(zscoreAx,50,dFTracePlot(50),0,num2str(zScore(c)));
+        % plot(zscoreAx,dFTracePlot, '--','Color', [0.5 0.5 0.5]);
+        % text(zscoreAx,50,dFTracePlot(50),0,num2str(zScore(c)));
     end
 end
 
