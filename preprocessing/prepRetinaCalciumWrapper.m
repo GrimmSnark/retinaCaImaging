@@ -27,6 +27,10 @@ function prepRetinaCalciumWrapper(folderPath, fileStartNo, motionCorrFlag,  moti
 
 %% defaults
 
+if nargin < 1 || isempty(folderPath)
+    [folderPath] = uigetdir('', 'Pick a Directory');
+end
+
 if nargin < 2 || isempty(fileStartNo)
     fileStartNo = 1;
 end
