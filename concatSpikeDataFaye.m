@@ -46,6 +46,9 @@ for i = 1:length(exStructPaths)
     currentExPath = fullfile(exStructPaths(i).folder, exStructPaths(i).name);
 
     load(currentExPath);
+    noFramesPerEx(i) = length(exStruct.xyShifts);
+    ratePerEx(i) = exStruct.rate;
+
     zInclude = exStruct.cells.zScoreThresholded; % filter by z score 
 
     if isfield(exStruct, 'spikes')
@@ -104,10 +107,54 @@ grandTableSyncedSpikes = grandTable(grandTable.waveInclusion >0,:);
 grandTableAsynchedSpikes = grandTable(grandTable.waveInclusion ==0,:);
 
 meanTable = table(meanExStructPath, cellNoMean, firingRates, meanSpikeAmp);
+[~, ExStructPathInx]= unique(meanTable.meanExStructPath);
+
+%%%%%% ADD mean metrics for sync and a-sync!!!!!
+[uniqueFile, ~, uniqueFileInx2]= unique(grandTable.exStructTablePath);
+for xx = 1:length(uniqueFile)
+    currentExStruct = grandTable(uniqueFileInx2 == xx,:);
+
+    [uniqueCell, ~, uniqueCellInx2]= unique(currentExStruct.cellNo);
+
+    for v = 1:length(uniqueCell)
+
+        % calculate sycnhed vs asynched 'spike' properties
+        cellSpikes = grandTable(uniqueCellInx2 == v,:);
+        cellSpikesID = cellSpikes(1,:);
+        cellSpikes = removevars(cellSpikes,["exStructTablePath","spikeNo"]);
+
+
+        synchedSpikes  = cellSpikes(cellSpikes.waveInclusion > 0,:);
+        aSynchedSpikes = cellSpikes(cellSpikes.waveInclusion == 0,:);
+
+        cellSyncedFr = height(synchedSpikes)/(noFramesPerEx(xx)/ratePerEx(xx));
+        cellAsycnhedFr = height(aSynchedSpikes)/(noFramesPerEx(xx)/ratePerEx(xx));
+
+        meanCellSynched = mean(synchedSpikes);
+        meanAsynchedSpikes = mean(aSynchedSpikes);
+
+
+        % add everything back into mean table
+        cellIndx = ExStructPathInx(xx)-1 + v;
+
+        meanTable.firingRateSynched(cellIndx)  = cellSyncedFr;
+        meanTable.meanSpikeAmpSynched(cellIndx) =  meanCellSynched.spikeAmp;
+        meanTable.meanSpikeWidthSynched(cellIndx) = meanCellSynched.spikeWidth;
+        meanTable.meanRiseTimeSynched(cellIndx) = meanCellSynched.riseTime;
+        meanTable.meanDecayTimeSynched(cellIndx) = meanCellSynched.decayTime;
+
+        meanTable.firingRateAsynched(cellIndx)  = cellAsycnhedFr;
+        meanTable.meanSpikeAmpAsynched(cellIndx) =  meanAsynchedSpikes.spikeAmp;
+        meanTable.meanSpikeWidthAsynched(cellIndx) = meanAsynchedSpikes.spikeWidth;
+        meanTable.meanRiseTimeAsynched(cellIndx) = meanAsynchedSpikes.riseTime;
+        meanTable.meanDecayTimeAsynched(cellIndx) = meanAsynchedSpikes.decayTime;
+    end
+end
+
+meanTable = fillmissing(meanTable, "constant",0, 'DataVariables', @isnumeric);
 
 cellCoherenceTable = table(cellCoherencePaths, cellCoherenceCellNo, cellCoherence);
 waveCoherenceTable = table(waveCoherencePaths, waveCoherenceWaveNo, waveCoherence);
-
 
 zScoreTable = table(zScoresPaths,zScoreCells,zScores);
 

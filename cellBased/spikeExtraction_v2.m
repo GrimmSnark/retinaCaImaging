@@ -31,7 +31,10 @@ exStruct.cells.zscoreLim = zscoreLim;
 
 %% analyse each cell
 exStruct.spikes = [];
-exStruct.rate = round(exStruct.fps);
+
+if isfield(exStruct, "fps")
+    exStruct.rate = round(exStruct.fps);
+end
 
 for c= 1:exStruct.cellCount
     dFTrace = exStruct.cells.dF(c,:);
