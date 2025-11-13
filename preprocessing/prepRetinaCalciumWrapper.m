@@ -29,6 +29,7 @@ function prepRetinaCalciumWrapper(folderPath, fileStartNo, motionCorrFlag,  moti
 
 if nargin < 1 || isempty(folderPath)
     [folderPath] = uigetdir('', 'Pick a Directory');
+    folderPath = [folderPath filesep];
 end
 
 if nargin < 2 || isempty(fileStartNo)
@@ -66,7 +67,11 @@ if isempty(files)
 end
 
 if isempty(files)
-    files = dir([folderPath '*.tif']);
+    files = dir([folderPath '**\*.tif']);
+    
+    % remove SDs
+    t = cellfun(@(x) contains(x,'SD.tif'),{files.name});
+    files(t)= [];
 end
 
 for i = fileStartNo:length(files)
