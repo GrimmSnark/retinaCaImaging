@@ -130,8 +130,17 @@ for xx = 1:length(uniqueFile)
         cellSyncedFr = height(synchedSpikes)/(noFramesPerEx(xx)/ratePerEx(xx));
         cellAsycnhedFr = height(aSynchedSpikes)/(noFramesPerEx(xx)/ratePerEx(xx));
 
-        meanCellSynched = mean(synchedSpikes);
-        meanAsynchedSpikes = mean(aSynchedSpikes);
+        try
+            meanCellSynched = mean(synchedSpikes);
+            meanAsynchedSpikes = mean(aSynchedSpikes);
+        catch
+            meanCellSynched = varfun(@mean,synchedSpikes, 'InputVariables', @isnumeric);
+            meanCellSynched.Properties.VariableNames = synchedSpikes.Properties.VariableNames;
+
+            meanAsynchedSpikes = varfun(@mean,aSynchedSpikes, 'InputVariables', @isnumeric);
+            meanAsynchedSpikes.Properties.VariableNames = aSynchedSpikes.Properties.VariableNames;
+        end
+
 
 
         % add everything back into mean table

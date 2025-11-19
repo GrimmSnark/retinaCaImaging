@@ -63,6 +63,8 @@ end
 
 noOfImagesForAlignment = 100; % number of brightest images used for motion correction template image
 
+nblocks = 4; % splitting tifstack into chunks for computation on mid-low RAM systems
+
 %% get save folder locations
 [folderParts, name, ext ] = fileparts(filePath);
 
@@ -164,7 +166,7 @@ if createDFPixelMovieFlag == 1
     imageDF_SD = uint16(mat2gray(imageDF_SD) * 65535);
     saveastiff(imageDF_SD, fullfile(folderParts, [name '_dF_SD.tif']));
 end
-%% save meta and SD image
+%% save meta and SD imageru
 
 save(fullfile(folderParts, [name '_ExStruct.mat']), 'imageMetaData', '-v7.3');
 
@@ -175,7 +177,23 @@ clear imageMetaData
 if gpuDeviceCount == 1 % tries for GPU  version, which will only work if nvidia CUDA installed
     imageSD = stdGPU(imStackCal);
 else
-    imageSD = std(double(imStackCal),[],3);
+    %% run SD on xy chunks of the image
+    % get the right chunk numbers
+    chunkNo = round(size(imStackCal,2)/nblocks);
+
+    % error corrects
+    chunkStart = 1:chunkNo:size(imStackCal,2);
+    chunkEnd = chunkStart + chunkNo-1;
+    chunkEnd(chunkEnd >= size(imStackCal,2)) = [];
+    chunkEnd(end+1) = size(imStackCal,2);
+    chunkStart(chunkStart >= size(imStackCal,2)) = [];
+
+    for x = 1:nblocks
+        for y = 1:nblocks
+            tempChunk = imStackCal(chunkStart(x): chunkEnd(x), chunkStart(y): chunkEnd(y),:);
+            imageSD(chunkStart(x): chunkEnd(x), chunkStart(y): chunkEnd(y)) = std(double(tempChunk),[],3);
+        end
+    end
 end
 
 imageSD = uint16(mat2gray(imageSD) * 65535);
