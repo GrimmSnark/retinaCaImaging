@@ -42,6 +42,7 @@ waveInclusion = [];
 
 % for all exStructs
 for i = 1:length(exStructPaths)
+    try
     tempTable = table;
     currentExPath = fullfile(exStructPaths(i).folder, exStructPaths(i).name);
 
@@ -82,7 +83,7 @@ for i = 1:length(exStructPaths)
         meanSpikeAmp = [meanSpikeAmp; exStruct.spikes.meanSpikeAmp(zInclude)'];
 
         %% cell coherence metrics
-        cellCoherencePaths = [cellCoherencePaths ;repmat({currentExPath}, sum(zInclude) ,1)];
+        cellCoherencePaths = [cellCoherencePaths ;repmat({currentExPath}, length(exStruct.wavesMetrics.cellCoherence) ,1)];
         cellCoherenceCellNo = [cellCoherenceCellNo; exStruct.wavesMetrics.cellCoherence(:,1)];
         cellCoherence = [cellCoherence; exStruct.wavesMetrics.cellCoherence(:,2)];
 
@@ -98,6 +99,9 @@ for i = 1:length(exStructPaths)
     else
 
         disp([currentExPath ' does not contain spikes field....moving on']);
+    end
+    catch
+        disp(['Error with concatenation file: ' fullfile(exStructPaths(i).folder, exStructPaths(i).name)])
     end
 
 end

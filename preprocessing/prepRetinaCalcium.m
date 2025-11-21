@@ -166,7 +166,7 @@ if createDFPixelMovieFlag == 1
     imageDF_SD = uint16(mat2gray(imageDF_SD) * 65535);
     saveastiff(imageDF_SD, fullfile(folderParts, [name '_dF_SD.tif']));
 end
-%% save meta and SD imageru
+%% save meta and SD image
 
 save(fullfile(folderParts, [name '_ExStruct.mat']), 'imageMetaData', '-v7.3');
 

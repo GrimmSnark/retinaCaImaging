@@ -44,17 +44,19 @@ for c = 1:cells.cellCount
 
     plotOffset = plotOffset + offset;
     plot(timeBase, cells.dF(c,:) + plotOffset);
+    ytickPos(c) = plotOffset;
 
-    title(['DF for Cell No' num2str(c)]);
+    % title(['DF for Cell No' num2str(c)]);
 
     xlabel('Time in Sec');
     xlim([0 timeBase(end)]);
 
     ylabel('DF');
 end
+
+yticks(ytickPos);
+yticklabels(1:c);
 tightfig();
-
-
 saveas(figH,[fullfile(exStruct.filePath(1:end-4)) '_CellDFs.png']);
 
 end
