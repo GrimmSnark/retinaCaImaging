@@ -11,9 +11,10 @@ function loadImagingData2FIJI(filepath2Use, registerFlag)
 %% set defaults
 
 if nargin <2 || isempty(registerFlag)
-   registerFlag = 1; 
+    registerFlag = 1;
 end
 
+channel2Use = 1;
 usingRawData = 0;
 intializeMIJ;
 
@@ -26,57 +27,60 @@ folder2Process = dir([filepath2Use '\**\*_ExStruct.mat']);
 %     filePath = createSavePath(filepath2Use,1,1);
 %     folder2Process = dir([filePath '\**\experimentStructure.mat']);
 % end
-% 
+%
 if isempty(folder2Process)
     folder2Process = filepath2Use;
-    usingRawData  =1;
+    % usingRawData  =1;
 end
 
 if usingRawData ==0
-    
+
     % load experimentStructure
-    load([folder2Process.folder '\*_ExStruct.mat']);
-    
-    % read in tiff file
-    vol = read_Tiffs(experimentStructure.fullfile,1);
-    if ndims(vol) ~=3
-        vol = readMultipageTifFiles(experimentStructure.prairiePath);
+    load([folder2Process]);
+
+    if ~exist(exStruct.filePath)
+        parentDir =  getParentDirFull(folder2Process);
+
+        imPath = dir([parentDir '\*.nd2']);
+        imPath = fullfile(imPath.folder,imPath.name);
+        exStruct.filePath = imPath;
     end
-    
-    
-    % check number of channels in imaging stack
-    channelIndxStart = strfind(experimentStructure.filenamesFrame{1}, '_Ch');
-    for i =1:length(experimentStructure.filenamesFrame)
-        channelIdentity{i} = experimentStructure.filenamesFrame{i}(channelIndxStart:channelIndxStart+3);
-    end
-    channelNo = unique(channelIdentity);
-    
-    % chooses correct channel to analyse in multichannel recording
-    if length(channelNo)>1
-        volSplit =  reshape(vol,size(vol,1),size(vol,2),[], length(channelNo));
-        vol = volSplit;
-    end
-    
-    if registerFlag == 1
-    for q = 1:size(vol,4)
-        % apply imageregistration shifts if there are shifts to apply
-        if isprop(experimentStructure, 'options_nonrigid') && ~isempty(experimentStructure.options_nonrigid) % if using non rigid correctionn
-            registeredVol(:,:,:,q) = apply_shifts(vol(:,:,:,q),experimentStructure.xyShifts,experimentStructure.options_nonrigid);
-        elseif  ~isempty(experimentStructure.xyShifts)
-            registeredVol(:,:,:,q) = shiftImageStack(vol(:,:,:,q),experimentStructure.xyShifts([2 1],:)'); % Apply actual shifts to tif stack
-        else % if there are no motion correction options, ie the image stack loaded is already motion corrected
-            registeredVol(:,:,:,q) = vol(:,:,:,q);
+
+    [~, ~, ext ] = fileparts(exStruct.filePath);
+
+    if usingRawData ==0
+        %% read in image file
+        if strcmp(ext, '.nd2')
+            imStack = readFLAMEData(exStruct.filePath);
+            %% read in images
+            % split into channels
+            imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(exStruct.colours.emWavelength), []);
+            vol = squeeze(imStack(:,:,channel2Use,:));
+            imStack = [];
+
+        else
+            try
+                vol = read_Tiffs(exStruct.filePath);
+            catch
+                vol = readMultipageTifFiles(exStruct.filePath);
+            end
         end
+
+
+        % apply imageregistration shifts if there are shifts to apply
+        if isprop(exStruct, 'options_nonrigid') && ~isempty(exStruct.options_nonrigid) % if using non rigid correctionn
+            registeredVol = apply_shifts(vol,exStruct.xyShifts,exStruct.options_nonrigid);
+            % elseif  ~isempty(exStruct.xyShifts) && isfield(exStruct, 'xyShifts')
+        elseif isfield(exStruct, 'xyShifts')  && ~isempty(exStruct.xyShifts)
+            registeredVol = shiftImageStack(vol,exStruct.xyShifts([2 1],:)'); % Apply actual shifts to tif stack
+        else % if there are no motion correction options, ie the image stack loaded is already motion corrected
+            registeredVol = vol;
+        end
+
     end
-    else
-        registeredVol = vol;
-    end
-    
-    if length(channelNo)>1
-        registeredVol = reshape(registeredVol, size(registeredVol,1),size(registeredVol,2),[],1);
-    end
+
 else
-    
+
 end
 
 % transfers to FIJI
