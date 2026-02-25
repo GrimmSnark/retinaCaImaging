@@ -35,12 +35,15 @@ exStruct.cells.zscoreLim = zscoreLim;
 % convert time chunk in seconds to frames
 if nargin < 2 || isempty(timeChunk)
     frameChunk = [1:length(exStruct.frameInfo.frameTime)];
+    cutAUC = 1;
 else
     frameChunk = round(timeChunk(1):timeChunk(2));
 
     if frameChunk(1) == 0
         frameChunk = frameChunk + 1;
     end
+
+    cutAUC = 0;
 end
 
 exStruct.frameChunkAnalysed = frameChunk;
@@ -63,8 +66,11 @@ for c= 1:exStruct.cellCount
     exStruct.cells.zScoreThresholded = zScore > zscoreLim;
 
     %% Area under trace
-
-    dFCut = dFTrace(1:round(length(dFTrace)*0.97)); % remove last 3% of timepoints to stop aretfact from being counted in AUC
+    if cutAUC == 1
+        dFCut = dFTrace(1:round(length(dFTrace)*0.97)); % remove last 3% of timepoints to stop aretfact from being counted in AUC
+    else
+        dFCut = dFTrace;
+    end
 
 
     % get everything above zero
