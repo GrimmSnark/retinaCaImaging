@@ -46,6 +46,10 @@ end
 %% get filepath root
 filePathRoot = exStructPath(1:end-13);
 
+if exist([filePathRoot '.nd2'])
+    exStruct.filePath = [filePathRoot '.nd2'];
+end
+
 %% Create the appropriate images for ROI extraction
 
 % finds all the relevant images for ROI choosing
