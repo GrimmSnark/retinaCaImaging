@@ -31,7 +31,9 @@ if nargin < 3 || isempty(baselineSubType)
 end
 
 %%
-files = dir([folderPath '\*.mat']);
+% files = dir([folderPath '\*.mat']);
+files = dir([folderPath '**\*.mat']);
+
 
 for i = fileStartNo:length(files)
     disp(['On file no. ' num2str(i) ' of ' num2str(length(files))])

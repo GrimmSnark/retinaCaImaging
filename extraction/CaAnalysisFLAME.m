@@ -54,6 +54,12 @@ filePathRoot = exStructPath(1:end-13);
 %exStruct.filePath = [filePathRoot '.tif'];
 % exStruct.filePath = filePathRoot;
 
+% try to find .nd2 if not in the same directory
+if ~exist(exStruct.filePath)
+    nd2path = dir([filePathRoot '*.nd2']);
+    exStruct.filePath = fullfile(nd2path.folder, nd2path.name);
+end
+
 
 %% start analysis
 

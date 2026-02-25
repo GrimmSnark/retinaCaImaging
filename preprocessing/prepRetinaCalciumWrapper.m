@@ -57,7 +57,9 @@ if nargin <7 || isempty(channelOrg)
     channelOrg = [1 2];
 end
 
-files = dir([folderPath '**\*rec*.nd2']);
+% files = dir([folderPath '**\*rec*.nd2']);
+files = dir([folderPath '**\*.nd2']);
+
 
 % remove snaps
 files = files(~contains({files(:).name},'snap'));

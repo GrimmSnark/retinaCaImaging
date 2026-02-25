@@ -80,7 +80,7 @@ for c= 1:exStruct.cellCount
 
             % rise/decay time threshold
             %             [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinder(riseSample, fallSample, exStruct.rate);
-            [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinderTriangle(riseSample, fallSample, exStruct.rate);
+            [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinderTriangle2(riseSample, fallSample, exStruct.rate);
 
 
             % add into structure
@@ -205,7 +205,7 @@ for c= 1:exStruct.cellCount
 
 
                 % rise/decay time threshold
-                [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinderTriangle(riseSample, fallSample, exStruct.rate);
+                [riseTime, decayTime, riseTimeIndx, crossIndxFall] = riseTimeDecayFinderTriangle2(riseSample, fallSample, exStruct.rate);
 
                 % add into structure
                 riseTimeStructSmall{c}(sp) = riseTime;

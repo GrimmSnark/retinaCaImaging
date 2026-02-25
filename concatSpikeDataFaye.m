@@ -29,6 +29,7 @@ waveCoherence = [];
 zScoresPaths = [];
 zScoreCells = [];
 zScores = [];
+AUC =[];
 
 %% spike metrics
 spikeAmp = [];
@@ -39,6 +40,9 @@ cellNo = [];
 spikeNo = [];
 waveInclusion = [];
 
+meanRecExStructPath = {};
+firingRatesMean = [];
+meanRecSpikeAmp = [];
 
 % for all exStructs
 for i = 1:length(exStructPaths)
@@ -82,6 +86,12 @@ for i = 1:length(exStructPaths)
         firingRates = [firingRates; exStruct.spikes.firingRate(zInclude)' ];
         meanSpikeAmp = [meanSpikeAmp; exStruct.spikes.meanSpikeAmp(zInclude)'];
 
+
+         zScoresPaths = [zScoresPaths ; repmat({currentExPath}, length(exStruct.cells.zScore) ,1)];
+        zScoreCells = [zScoreCells ; (1:exStruct.cellCount)'];
+        zScores = [zScores; exStruct.cells.zScore];
+        AUC = [AUC; exStruct.cells.AUC'];
+
         %% cell coherence metrics
         cellCoherencePaths = [cellCoherencePaths ;repmat({currentExPath}, length(exStruct.wavesMetrics.cellCoherence) ,1)];
         cellCoherenceCellNo = [cellCoherenceCellNo; exStruct.wavesMetrics.cellCoherence(:,1)];
@@ -110,7 +120,7 @@ grandTable = table(exStructTablePath, cellNo,  spikeNo, spikeAmp, spikeWidth, ri
 grandTableSyncedSpikes = grandTable(grandTable.waveInclusion >0,:);
 grandTableAsynchedSpikes = grandTable(grandTable.waveInclusion ==0,:);
 
-meanTable = table(meanExStructPath, cellNoMean, firingRates, meanSpikeAmp);
+meanTable = table(meanExStructPath, cellNoMean, firingRates, meanSpikeAmp, AUC);
 [~, ExStructPathInx]= unique(meanTable.meanExStructPath);
 
 %%%%%% ADD mean metrics for sync and a-sync!!!!!

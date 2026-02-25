@@ -1,4 +1,4 @@
-function spikeExtraction_v2(exStructPath)
+function spikeExtraction_v2(exStructPath, timeChunk)
 
 % This function completes 'spike' detection on calcium activity of
 % idenitified cells. Calculates spike amplitudes, full width at half max,
@@ -7,6 +7,8 @@ function spikeExtraction_v2(exStructPath)
 % Written by Michael Savage (michael.savage2@ncl.ac.uk)
 %
 % Inputs-  exStructPath: filepath for exStruct.mat to process
+%          timeChunk: two number vector to specfy in seconds the time chunk
+%                     to process, i.e. [0 120] (first 120 seconds)
 
 %% defaults
 
@@ -14,6 +16,7 @@ zscoreLim = 12;
 minPeakThresh = 0.001;
 % sIQRLim = 0.04;
 plotOffset = 0.1;
+plotwaves = 1;
 
 
 %% load exStruct
@@ -29,6 +32,19 @@ exStruct = load(exStructPath);
 exStruct = exStruct.exStruct;
 exStruct.cells.zscoreLim = zscoreLim;
 
+% convert time chunk in seconds to frames
+if nargin < 2 || isempty(timeChunk)
+    frameChunk = [1:length(exStruct.frameInfo.frameTime)];
+else
+    frameChunk = round(timeChunk(1):timeChunk(2));
+
+    if frameChunk(1) == 0
+        frameChunk = frameChunk + 1;
+    end
+end
+
+exStruct.frameChunkAnalysed = frameChunk;
+
 %% analyse each cell
 exStruct.spikes = [];
 
@@ -37,7 +53,7 @@ if isfield(exStruct, "fps")
 end
 
 for c= 1:exStruct.cellCount
-    dFTrace = exStruct.cells.dF(c,:);
+    dFTrace = exStruct.cells.dF(c,frameChunk);
     % dFTrace = sgolayfilt(dFTrace,5,exStruct.rate+1);
     dFTrace = sgolayfilt(dFTrace,5,11);
 
@@ -46,6 +62,20 @@ for c= 1:exStruct.cellCount
     exStruct.cells.zScore = zScore;
     exStruct.cells.zScoreThresholded = zScore > zscoreLim;
 
+    %% Area under trace
+
+    dFCut = dFTrace(1:round(length(dFTrace)*0.97)); % remove last 3% of timepoints to stop aretfact from being counted in AUC
+
+
+    % get everything above zero
+    yData = dFCut(dFCut>0);
+    xData = find(dFCut>0);
+    % Calculate the area under the dFTrace for each spike
+    if length(yData) > 1
+        AUC(c) = trapz(xData,yData);
+    else
+        AUC(c) = 0;
+    end
 
     %% 'spike' detection
 
@@ -126,7 +156,11 @@ end
 res=cellfun(@(x,y) y-x,spikeLocs,decayTimeIndxStruct, 'UniformOutput',false);
 decayTimeStruct = cellfun(@(x) x/exStruct.rate,res, 'UniformOutput',false);
 
+
+
 %% add everything into exStruct
+exStruct.cells.AUC = AUC;
+
 exStruct.spikes = [];
 
 if isfield(exStruct,  'spikesSmall')
@@ -153,11 +187,13 @@ zscoreFig = figure('units','normalized','outerposition',[0 0 1 1]);
 zscoreAx = gca;
 hold on
 axis tight
-%% plot based on zcore
+%% plot based on zscore
+count = 1;
 for c= 1:exStruct.cellCount
 
-    dFTracePlot = exStruct.cells.dF(c,:) + (c-1)*plotOffset;
-    offsetVals(c) = (c-1)*plotOffset;
+    dFTracePlot = exStruct.cells.dF(c,frameChunk) + (count-1)*plotOffset;
+    % offsetVals(c) = (count-1)*plotOffset;
+    count = count +1;
 
     if zScore(c) > zscoreLim
         plot(zscoreAx,dFTracePlot)
@@ -180,7 +216,7 @@ for c= 1:exStruct.cellCount
 end
 
 %% plot waves
-
+if plotwaves == 1
 if sum(exStruct.cells.zScoreThresholded) > 0
     spikesSorted = exStruct.wavesMetrics.spikesSorted;
 
@@ -202,11 +238,12 @@ if sum(exStruct.cells.zScoreThresholded) > 0
         plot(wavePoints(:,1)',wavePoints(:,2)', 'LineStyle',':');
     end
 end
+end
 
 tightfig;
 
 fileStruct = dir(exStruct.filePath);
-saveas(zscoreFig,fullfile(fileStruct.folder,[fileStruct.name(1:end-4) 'DF_fig.tif']));
+saveas(zscoreFig,fullfile(fileStruct.folder,[fileStruct.name(1:end-4) '_Fr_' num2str(frameChunk(1)) '_' num2str(frameChunk(2)) '_DF_fig.tif']));
 
 %% save data
 save(exStructPath, "exStruct", '-v7.3');
