@@ -20,11 +20,11 @@ function prepRetinaCalcium(filePath, motionCorrFlag, motionCorrectionType, creat
 %        zeroDFStack - 0/1 to make and negative DF signal zero for the DF
 %                      movies DEFAULT = 1
 %
-%        channelOrg - two element vector showing organisation of calcium 
+%        channelOrg - two element vector showing organisation of calcium
 %                     then blood vessel channels, first element is the
 %                     calcium channel no, the second is the blood vessel
 %                     channel DEFAULT [1 2]
-%                     
+%
 
 %% defaults
 
@@ -74,10 +74,10 @@ end
 
 %% read in image file
 if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
-%     profile on
+    %     profile on
     [imStack, imageMetaData] = readFLAMEData(filePath);
 
-%     profile viewer
+    %     profile viewer
     % split into channels
     imStack = reshape(imStack, size(imStack,1), size(imStack,1), length(imageMetaData.colours.emWavelength), []);
     imStackCal = squeeze(imStack(:,:,calciumChan,:));
@@ -106,8 +106,8 @@ if strcmp(ext, '.nd2')  || strcmp(ext, '.czi')
             saveastiff(imageIMSD, fullfile(folderParts, [name '_BV_SD.tif']));
         end
 
-            %clean up to save space
-            clear('imStackBV');
+        %clean up to save space
+        clear('imStackBV');
     end
 
 else
@@ -168,7 +168,11 @@ if createDFPixelMovieFlag == 1
 end
 %% save meta and SD image
 
-save(fullfile(folderParts, [name '_ExStruct.mat']), 'imageMetaData', '-v7.3');
+if ispc % if on pc
+    save(fullfile(folderParts, [name '_ExStruct.mat']), 'imageMetaData', '-v7.3');
+else % if on mac
+    save(fullfile(filesep, folderParts, [name '_ExStruct.mat']), 'imageMetaData', '-v7.3');
+end
 
 % clean up a little
 clear imageMetaData
@@ -197,6 +201,12 @@ else
 end
 
 imageSD = uint16(mat2gray(imageSD) * 65535);
-saveastiff(imageSD, fullfile(folderParts, [name '_SD.tif']));
+
+
+if ispc % if on pc
+    saveastiff(imageSD, fullfile(folderParts, [name '_SD.tif']));
+else % if on mac
+    saveastiff(imageSD, fullfile(filesep,folderParts, [name '_SD.tif']));
+end
 
 end

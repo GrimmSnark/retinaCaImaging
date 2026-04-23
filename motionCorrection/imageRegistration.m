@@ -63,7 +63,7 @@ if strcmp(imageRegistrationMethod, 'subMicronMethod')
             chunkStart = 1:chunkNo:size(tifStack,3);
             chunkEnd = chunkStart + chunkNo-1;
             chunkEnd(chunkEnd >= size(tifStack,3)) = [];
-            chunkEnd(end+1) = size(tifStack,3);
+            chunkEnd(end) = size(tifStack,3);
 
             chunkStart(chunkStart >= size(tifStack,3)) = [];
             templateImgGPU = gpuArray(templateImg);
