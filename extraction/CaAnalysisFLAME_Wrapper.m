@@ -33,6 +33,8 @@ end
 %%
 % files = dir([folderPath '\*.mat']);
 files = dir([folderPath '**\*.mat']);
+rmFlag = startsWith({files.name}, '._');
+files(rmFlag) = [];
 
 
 for i = fileStartNo:length(files)

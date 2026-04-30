@@ -8,12 +8,19 @@ function [imStack, imageMetaData] = readFLAMEData(filePath)
 %          metaData - meta data structure extracted from nd2 file
 
 %% read in nd2 file
-% tic
-% imageStruct = bfopen2(filePath);
-% toc
-tic
-imageStruct = bfopen2_parallel(filePath);
-toc
+try
+    tic
+    imageStruct = bfopen2_parallel(filePath);
+    toc
+catch
+    disp('Deleting bfmemo file and retrying');
+    [fparts,name,ext] = fileparts(filePath);
+    bfmemoFilepath = dir(fullfile(fparts, ['.' name ext '.bfmemo']));
+    delete(fullfile(bfmemoFilepath.folder, bfmemoFilepath.name));
+
+    imageStruct = bfopen2_parallel(filePath);
+    toc
+end
 
 %% get the meta data
 % try

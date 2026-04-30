@@ -61,6 +61,7 @@ end
 files = dir([folderPath '**\*.nd2']);
 
 
+
 % remove snaps
 files = files(~contains({files(:).name},'snap'));
 
@@ -75,6 +76,9 @@ if isempty(files)
     t = cellfun(@(x) contains(x,'SD.tif'),{files.name});
     files(t)= [];
 end
+
+rmFlag = startsWith({files.name}, '._');
+files(rmFlag) = [];
 
 for i = fileStartNo:length(files)
     disp(['Preprocessing file no. ' num2str(i) ' of ' num2str(length(files))])
